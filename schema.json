@@ -1,0 +1,195 @@
+{
+    "framework_version": "2.2.0",
+    "schema_version": "2.2",
+    "description": "A comprehensive, service-oriented framework. This version re-integrates key services like history, project management, and debugging from the original schema.",
+    "services": {
+        "log_manager": {
+            "description": "REFINED: Logging service with a dedicated channel for UI notifications.",
+            "methods": {
+                "info": { "signature": "(message, *args, **kwargs)" },
+                "warning": { "signature": "(message, *args, **kwargs)" },
+                "error": { "signature": "(message, *args, **kwargs)" },
+                "notification": { "signature": "(message: str)", "description": "For user-facing messages, e.g., for a status bar." },
+                "subscribe_to_notifications": { "signature": "(callback: Callable)", "description": "Allows UI components to listen for notification messages." }
+            }
+        },
+        "event_manager": {
+            "description": "Core service for decoupled communication via a publish-subscribe model.",
+            "methods": {
+                "publish": { "signature": "(event_name: str, *args, **kwargs)" },
+                "subscribe": { "signature": "(event_name: str, callback: Callable)" }
+            }
+        },
+        "command_manager": {
+            "description": "Discovers and executes commands. Now integrates with the history_manager.",
+            "methods": {
+                "execute": { "signature": "(command_id: str, **kwargs)" },
+                "get_command": { "signature": "(command_id: str) -> Optional[ICommand]" }
+            }
+        },
+        "plugin_manager": { "description": "Discovers and loads plugin entry points.", "methods": { "load_plugins_from_folder": { "signature": "(folder_path: str)" } } },
+        "service_manager": { "description": "A unified manager for all core and plugin-contributed services.", "methods": { "register": { "signature": "(service_id: str, service_instance: Any)" }, "get": { "signature": "(service_id: str) -> Any" } } },
+        "settings_manager": { "description": "Manages persistent application and project settings.", "methods": { "get": { "signature": "(key: str, default: Any = None) -> Any" }, "set": { "signature": "(key: str, value: Any)" } } },
+        "worker_manager": { "description": "Manages a thread pool for running tasks in the background.", "methods": { "submit": { "signature": "(task_function: Callable, *args, **kwargs)" } } },
+        "history_manager": {
+            "description": "NEW (RE-INTEGRATED): Manages the undo and redo stacks.",
+            "methods": {
+                "add_command": { "signature": "(command: IUndoableCommand)", "description": "Adds a command to the undo stack. Called by the command_manager after execution." },
+                "undo": { "signature": "()" },
+                "redo": { "signature": "()" }
+            }
+        },
+        "project_manager": {
+            "description": "NEW (RE-INTEGRATED): Manages loading, saving, and accessing project data.",
+            "methods": {
+                "new_project": { "signature": "()" },
+                "load_project": { "signature": "(path: str)" },
+                "save_project": { "signature": "(path: str)" },
+                "get_active_project": { "signature": "() -> Optional[ProjectDataModel]" }
+            }
+        },
+        "database_service": {
+            "description": "Manages the active database provider and exposes a clean API.",
+            "methods": {
+                "connect": { "signature": "(provider_id: str, **kwargs)" },
+                "get": { "signature": "(table: str, key: str) -> Optional[Dict]" },
+                "put": { "signature": "(table: str, key: str, value: Dict) -> bool" },
+                "query": { "signature": "(table: str, filter_func: Callable) -> List[Dict]" }
+            }
+        },
+        "debug_manager": {
+            "description": "NEW (RE-INTEGRATED): Provides tools for application introspection.",
+            "methods": {
+                "get_full_report": { "signature": "() -> Dict", "description": "Gathers a comprehensive diagnostic report from all services." }
+            }
+        }
+    },
+    "contribution_points": {
+        "services": { "description": "Contributes a service instance or class.", "schema": { "id": "string", "class": "string (path to class)", "instance": "object (pre-initialized instance)" } },
+        "commands": { "description": "Contributes an executable command.", "schema": { "id": "string", "class": "string" } },
+        "shell": { "description": "Contributes the main application window shell.", "schema": { "id": "string", "class": "string" } },
+        "ui_docks": { "description": "Contributes a QDockWidget to be hosted by the shell.", "schema": { "id": "string", "class": "string", "title": "string", "default_area": "string ('left', 'right', 'bottom')" } },
+        "ui_menu_items": { "description": "Contributes an item to the main menu bar.", "schema": { "id": "string", "path": "string", "command_id": "string" } },
+        "database_providers": { "description": "Contributes a data storage backend.", "schema": { "id": "string", "class": "string" } },
+        "themes": {
+            "description": "NEW (RE-INTEGRATED): Contributes a UI theme.",
+            "schema": {
+                "id": "string",
+                "path": "string (relative path to a stylesheet or theme folder)"
+            }
+        }
+    },
+    "plugin_structure_convention": {
+        "description": "Defines the expected structure for a plugin folder.",
+        "layout": [
+            "my_plugin_folder/",
+            "├── __init__.py (can be empty)",
+            "├── plugin.py (REQUIRED: Contains the main 'Plugin' class)",
+            "└── (other .py files)"
+        ]
+    },
+    "plugins": {
+        "assets": {
+            "description": "Provides asset management, scanning, browsing, and thumbnailing capabilities.",
+            "contributions": {
+                "services": [
+                    {
+                        "id": "asset_service",
+                        "description": "A service for managing and scanning media assets. (API inferred from usage in other plugins).",
+                        "methods": {
+                            "set_asset_rating": { "signature": "(asset_id: str, rating: int)" },
+                            "get_or_create_thumbnail": { "signature": "(path: str, file_hash: str) -> str | None", "description": "Ensures a thumbnail exists and returns its path. Ideal for worker threads." },
+                            "get_asset_path": { "signature": "(asset_id: str) -> str | None" },
+                            "clear_clipboard_assets": { "signature": "()" },
+                            "delete_asset_by_path": { "signature": "(path: str)" },
+                            "find_duplicates": { "signature": "() -> List[Asset]" },
+                            "add_asset": { "signature": "(path: str) -> Asset | None" },
+                            "scan_folder": { "signature": "(folder_path: str)", "description": "Scans a folder for new assets in a background thread." }
+                        }
+                    },
+                    {
+                        "id": "thumbnail_service",
+                        "description": "Service dedicated to creating and caching thumbnails for assets. Intended for use in background threads.",
+                        "methods": {
+                            "get_thumbnail": { "signature": "(path: str, size: QSize) -> QPixmap | None", "description": "Retrieves a QPixmap for a given file path, using an in-memory cache." }
+                        }
+                    }
+                ],
+                "commands": [
+                    {
+                        "id": "assets.scan_folder",
+                        "class": "plugins.assets.commands.ScanFolderCommand",
+                        "description": "Command to trigger a folder scan via the AssetService.",
+                        "signature": "execute(folder_path: str)"
+                    }
+                ],
+                "ui_docks": [
+                    {
+                        "id": "asset_browser",
+                        "title": "Asset Browser",
+                        "default_area": "left",
+                        "description": "A dockable panel for browsing and managing assets."
+                    }
+                ]
+            },
+            "events": {
+                "publishes": [
+                    { "name": "assets:database_updated", "description": "Fired when assets are added or removed, signaling the UI to refresh." },
+                    { "name": "assets:metadata_updated", "description": "Fired when an asset's metadata (e.g., rating) is changed." }
+                ],
+                "subscribes_to": [
+                    { "name": "shell:ready", "description": "Used to trigger the initial scan of library folders when the application UI is ready." }
+                ]
+            },
+            "settings": [
+                { "key": "library_folders", "type": "List[str]", "description": "A list of paths to folders that should be scanned for assets on startup." },
+                { "key": "output_directory", "type": "str", "description": "The default directory for generated media, which is also scanned for assets." }
+            ]
+        },
+        "importer": {
+            "description": "Provides services for importing media from external web sources like Pinterest.",
+            "contributions": {
+                "services": [
+                    {
+                        "id": "web_importer_service",
+                        "class": "plugins.importer.services.WebImporterService",
+                        "description": "A service to handle importing assets from web URLs.",
+                        "methods": {
+                            "import_from_url": {
+                                "signature": "(url: str) -> str | None",
+                                "description": "Detects the source from a URL (currently Pinterest), downloads the media, saves it to a managed folder, and returns the new local path. The caller is responsible for adding the new path to the asset_service."
+                            }
+                        }
+                    }
+                ]
+            },
+            "dependencies": [
+                "log_manager"
+            ],
+            "notes": [
+                "This plugin directly interacts with the filesystem, saving files to '<project_root>/assets/pinterest'."
+            ]
+        },
+        "shell": {
+            "description": "Placeholder for the Shell plugin, which provides the main application window and UI layout.",
+            "contributions": {
+                "shell": [
+                    {
+                        "id": "main_shell",
+                        "class": "plugins.shell.main_window.MainWindow",
+                        "description": "The main application window (QMainWindow)."
+                    }
+                ]
+            },
+            "events": {
+                "publishes": [
+                    { "name": "shell:ready", "description": "Fired when the main UI has been constructed and is ready for other plugins to populate it." }
+                ]
+            }
+        },
+        "generation": {
+            "description": "Placeholder for a Generation plugin, likely responsible for AI-based media creation or processing.",
+            "notes": ["Schema not yet defined. Source files are needed for analysis."]
+        }
+    }
+}
