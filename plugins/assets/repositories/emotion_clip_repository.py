@@ -4,7 +4,7 @@ from typing import Dict, Optional, Sequence, Set
 
 from sqlalchemy.orm import Session
 
-from .models import EmotionClip
+from ..models import EmotionClip
 
 
 class EmotionClipRepository:

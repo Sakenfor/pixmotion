@@ -10,10 +10,10 @@ import numpy as np
 
 from framework.manifests import EmotionIntentConfig, EmotionPackageManifest
 
-from .emotion_repository import EmotionClipRepository
+from ..repositories import EmotionClipRepository
 
 if TYPE_CHECKING:
-    from .services import AssetService  # pragma: no cover
+    from .asset_service import AssetService  # pragma: no cover
 
 
 VIDEO_EXTENSIONS = {".mp4", ".mov", ".avi", ".mkv", ".webm"}
