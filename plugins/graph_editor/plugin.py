@@ -5,7 +5,7 @@ from typing import Any
 
 from interfaces import IPlugin
 
-from .panel import GraphExplorerPanel
+from .panel import GraphExplorerPanel  # Canonical dock implementation
 
 
 class Plugin(IPlugin):

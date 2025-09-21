@@ -1,6 +1,15 @@
 from __future__ import annotations
+
+"""Canonical implementation of the graph editor dock panel.
+
+This module is intentionally the single home for ``GraphExplorerPanel`` so the
+plugin entry point and any future helpers can import it without ambiguity.
+The panel owns all UI handlers for editing graphs, including drag-and-drop
+asset management and metadata inspection.
+"""
+
 import math
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 from PyQt6.QtCore import QPointF, Qt
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QListWidget, QListWidgetItem, QSplitter, \
     QGraphicsScene, QLabel, QTreeWidget, QTreeWidgetItem, QCheckBox, QMessageBox, QDialog
@@ -12,8 +21,16 @@ from .graph_edges import _GraphEdgeItem
 from .graph_dialogs import GraphCreateDialog, NodeCreateDialog, EdgeCreateDialog, EdgeManageDialog, DeleteNodeDialog
 
 
+REQUIRED_METADATA_KEYS: Tuple[str, ...] = ("persona_hint", "descriptor")
+
+
 class GraphExplorerPanel(QWidget):
-    """Dockable panel providing a Blender-like node editor."""
+    """Dockable panel providing a Blender-like node editor.
+
+    Besides the node-graph manipulation affordances, the panel centralises
+    asset drop handling and basic metadata validation so the dock presents a
+    consistent authoring workflow.
+    """
 
     def __init__(self, framework):
         super().__init__()
@@ -77,12 +94,13 @@ class GraphExplorerPanel(QWidget):
         self._view.request_delete_selection.connect(self._delete_selection)
         self._view.edge_dropped.connect(self._on_edge_dropped)
         self._view.edge_rewired.connect(self._on_edge_rewired)
-        # *** CHANGE: Connect the new asset drop signal ***
         self._view.asset_dropped_on_node.connect(self._on_asset_dropped)
 
-    # *** CHANGE: Add handler for asset drops ***
     def _on_asset_dropped(self, asset_id: str, node_id: str):
-        if not self._ensure_graph_loaded(): return
+        """Attach the dropped asset to the target node and refresh details."""
+
+        if not self._ensure_graph_loaded():
+            return
 
         node = self._current_graph.get_node(node_id)
         if not node:
@@ -93,7 +111,6 @@ class GraphExplorerPanel(QWidget):
             node.asset_refs.append(asset_id)
             self.log.info(f"Asset '{asset_id}' added to node '{node_id}'.")
             self._mark_dirty(True)
-            # If the dropped-on node is selected, refresh its details
             if self._detail_tree.topLevelItem(0) and self._detail_tree.topLevelItem(0).text(1) == node_id:
                 self._show_node_details(node)
         else:
@@ -381,11 +398,22 @@ class GraphExplorerPanel(QWidget):
         QTreeWidgetItem(self._detail_tree, ["Type", node.type])
         QTreeWidgetItem(self._detail_tree, ["Label", node.label or "<none>"])
 
-        # *** CHANGE: Display asset_refs in the detail view ***
         assets_parent = QTreeWidgetItem(self._detail_tree, ["Asset Refs", f"({len(node.asset_refs)})"])
         for ref in node.asset_refs:
             QTreeWidgetItem(assets_parent, [ref])
         assets_parent.setExpanded(True)
+
+        metadata_parent = QTreeWidgetItem(self._detail_tree, ["Metadata", ""])
+        if node.metadata:
+            for key, value in sorted(node.metadata.items()):
+                QTreeWidgetItem(metadata_parent, [key, str(value)])
+        else:
+            QTreeWidgetItem(metadata_parent, ["<none>", ""])
+
+        missing_keys = [key for key in REQUIRED_METADATA_KEYS if key not in node.metadata]
+        if missing_keys:
+            QTreeWidgetItem(metadata_parent, ["Missing required", ", ".join(missing_keys)])
+        metadata_parent.setExpanded(True)
 
         self._detail_tree.setUpdatesEnabled(True)
         self._detail_tree.resizeColumnToContents(0)
