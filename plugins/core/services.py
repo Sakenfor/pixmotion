@@ -12,12 +12,14 @@ class SettingsService:
     def __init__(self, framework):
         self.framework = framework
         self.log = framework.get_service("log_manager")
-        self.settings_path = os.path.join(framework.get_project_root(), "app_settings.json")
+        self.settings_path = os.path.join(
+            framework.get_project_root(), "app_settings.json"
+        )
         self.settings = self._load_settings()
 
     def _load_settings(self):
         try:
-            with open(self.settings_path, 'r') as f:
+            with open(self.settings_path, "r") as f:
                 return json.load(f)
         except (FileNotFoundError, json.JSONDecodeError):
             self.log.warning("Settings file not found or invalid. Using defaults.")
@@ -32,7 +34,7 @@ class SettingsService:
 
     def _save_settings(self):
         try:
-            with open(self.settings_path, 'w') as f:
+            with open(self.settings_path, "w") as f:
                 json.dump(self.settings, f, indent=4)
         except Exception as e:
             self.log.error(f"Failed to save settings: {e}")

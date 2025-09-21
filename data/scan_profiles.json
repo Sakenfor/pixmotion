@@ -1,0 +1,29 @@
+{
+  "quick_pass": {
+    "label": "Quick Sort Pass",
+    "layers": [
+      "basic",
+      "ai_quick"
+    ],
+    "filter": {
+      "asset_type": [
+        "image",
+        "video"
+      ]
+    }
+  },
+  "deep_pass": {
+    "label": "Deep AI Pass",
+    "layers": [
+      "ai_deep"
+    ],
+    "filter": {
+      "include_layers_any": {
+        "ai_quick": [
+          "person_detected",
+          "portrait"
+        ]
+      }
+    }
+  }
+}

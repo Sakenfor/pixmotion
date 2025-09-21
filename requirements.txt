@@ -1,0 +1,5 @@
+﻿PyQt6>=6.7
+numpy>=1.24
+opencv-python>=4.9
+Pillow>=10
+SQLAlchemy>=2

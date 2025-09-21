@@ -1,0 +1,16 @@
+{
+  "uuid": "92e895b0-e1be-4a2b-996d-67b234f491a2",
+  "name": "Application Shell",
+  "type": "plugin",
+  "version": "1.0.0",
+  "tags": [
+    "shell"
+  ],
+  "entry_point": "plugins.shell.plugin:register_plugin",
+  "dependencies": [
+    "Core Services",
+    "Asset Library",
+    "Pixverse Generation",
+    "Web Importer"
+  ]
+}

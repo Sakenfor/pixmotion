@@ -55,7 +55,10 @@ class AssetRepository:
         session = self.db.get_session()
         try:
             return {
-                p[0] for p in session.query(Asset.path).filter(Asset.path.startswith(folder_path))
+                p[0]
+                for p in session.query(Asset.path).filter(
+                    Asset.path.startswith(folder_path)
+                )
             }
         finally:
             session.close()
@@ -84,8 +87,12 @@ class AssetRepository:
                 .having(func.count(Asset.id) > 1)
                 .scalar_subquery()
             )
-            duplicates = session.query(Asset).filter(Asset.id.in_(duplicate_hashes_sq)).order_by(Asset.id,
-                                                                                                 Asset.path).all()
+            duplicates = (
+                session.query(Asset)
+                .filter(Asset.id.in_(duplicate_hashes_sq))
+                .order_by(Asset.id, Asset.path)
+                .all()
+            )
             return duplicates
         finally:
             session.close()
@@ -110,7 +117,9 @@ class AssetRepository:
     def get_assets_in_clipboard(self, clipboard_dir: str) -> list[Asset]:
         session = self.db.get_session()
         try:
-            return session.query(Asset).filter(Asset.path.startswith(clipboard_dir)).all()
+            return (
+                session.query(Asset).filter(Asset.path.startswith(clipboard_dir)).all()
+            )
         finally:
             session.close()
 

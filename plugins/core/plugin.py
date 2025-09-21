@@ -1,19 +1,22 @@
 # story_studio_project/plugins/core/plugin.py
 from interfaces import IPlugin
+from typing import Any
 from .services import SettingsService, DatabaseService
 from .commands import PasteFromClipboardCommand, ReloadPluginsCommand
+from .graph_scales import DEFAULT_QUALITATIVE_SCALES
+
 
 class Plugin(IPlugin):
     """
     This core plugin provides essential, non-UI services like project management
     and database access to the entire framework.
     """
+
     def register(self, framework):
         # 1. Create and register the settings service first, as it's a key dependency.
         settings_service = SettingsService(framework)
         framework.register_contribution(
-            "services",
-            {"id": "settings_service", "instance": settings_service}
+            "services", {"id": "settings_service", "instance": settings_service}
         )
 
         # 2. Create the database service.
@@ -23,17 +26,27 @@ class Plugin(IPlugin):
         # The obsolete call to initialize() is now removed. The service will
         # connect to the database automatically when it's first used.
         framework.register_contribution(
-            "services",
-            {"id": "database_service", "instance": db_service}
+            "services", {"id": "database_service", "instance": db_service}
         )
 
         # 4. Register core commands
         framework.register_contribution(
             "commands",
-            {"id": "assets.paste_from_clipboard", "class": PasteFromClipboardCommand}
+            {"id": "assets.paste_from_clipboard", "class": PasteFromClipboardCommand},
         )
 
         framework.register_contribution(
             "commands",
-            {"id": "framework.reload_plugins", "class": ReloadPluginsCommand}
+            {"id": "framework.reload_plugins", "class": ReloadPluginsCommand},
         )
+
+        for scale in DEFAULT_QUALITATIVE_SCALES:
+            framework.register_contribution("graph_qualitative_scales", scale)
+
+
+def register_plugin(service_registry: Any) -> None:
+    """Entry point declared in the plugin manifest."""
+    framework = getattr(service_registry, "get", lambda *_: None)("framework")
+    if framework is None:
+        raise RuntimeError("Framework service not registered in ServiceRegistry.")
+    Plugin().register(framework)

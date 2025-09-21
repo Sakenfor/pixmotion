@@ -1,0 +1,14 @@
+{
+  "uuid": "c0565978-acb0-4c4c-a895-53143fddb6d0",
+  "name": "Pixverse Generation",
+  "type": "plugin",
+  "version": "1.0.0",
+  "tags": [
+    "generation"
+  ],
+  "entry_point": "plugins.generation.plugin:register_plugin",
+  "dependencies": [
+    "Core Services",
+    "Asset Library"
+  ]
+}

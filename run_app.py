@@ -3,15 +3,15 @@ import sys
 from PyQt6.QtWidgets import QApplication
 from framework import Framework
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app = QApplication(sys.argv)
 
     # Apply a global stylesheet for rounded corners
-    stylesheet = '''
+    stylesheet = """
         QFrame, QPushButton, QLineEdit, QTextEdit, QComboBox, QListView, QTreeView {
             border-radius: 6px;
         }
-    '''
+    """
     app.setStyleSheet(stylesheet)
 
     # The Framework class is the central hub of the application.

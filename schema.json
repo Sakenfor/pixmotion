@@ -1,4 +1,4 @@
-{
+﻿{
     "framework_version": "2.2.0",
     "schema_version": "2.2",
     "description": "A comprehensive, service-oriented framework. This version re-integrates key services like history, project management, and debugging from the original schema.",
@@ -6,86 +6,312 @@
         "log_manager": {
             "description": "REFINED: Logging service with a dedicated channel for UI notifications.",
             "methods": {
-                "info": { "signature": "(message, *args, **kwargs)" },
-                "warning": { "signature": "(message, *args, **kwargs)" },
-                "error": { "signature": "(message, *args, **kwargs)" },
-                "notification": { "signature": "(message: str)", "description": "For user-facing messages, e.g., for a status bar." },
-                "subscribe_to_notifications": { "signature": "(callback: Callable)", "description": "Allows UI components to listen for notification messages." }
+                "info": {
+                    "signature": "(message, *args, **kwargs)"
+                },
+                "warning": {
+                    "signature": "(message, *args, **kwargs)"
+                },
+                "error": {
+                    "signature": "(message, *args, **kwargs)"
+                },
+                "notification": {
+                    "signature": "(message: str)",
+                    "description": "For user-facing messages, e.g., for a status bar."
+                },
+                "subscribe_to_notifications": {
+                    "signature": "(callback: Callable)",
+                    "description": "Allows UI components to listen for notification messages."
+                }
             }
         },
         "event_manager": {
             "description": "Core service for decoupled communication via a publish-subscribe model.",
             "methods": {
-                "publish": { "signature": "(event_name: str, *args, **kwargs)" },
-                "subscribe": { "signature": "(event_name: str, callback: Callable)" }
+                "publish": {
+                    "signature": "(event_name: str, *args, **kwargs)"
+                },
+                "subscribe": {
+                    "signature": "(event_name: str, callback: Callable)"
+                }
             }
         },
         "command_manager": {
             "description": "Discovers and executes commands. Now integrates with the history_manager.",
             "methods": {
-                "execute": { "signature": "(command_id: str, **kwargs)" },
-                "get_command": { "signature": "(command_id: str) -> Optional[ICommand]" }
+                "execute": {
+                    "signature": "(command_id: str, **kwargs)"
+                },
+                "get_command": {
+                    "signature": "(command_id: str) -> Optional[ICommand]"
+                }
             }
         },
-        "plugin_manager": { "description": "Discovers and loads plugin entry points.", "methods": { "load_plugins_from_folder": { "signature": "(folder_path: str)" } } },
-        "service_manager": { "description": "A unified manager for all core and plugin-contributed services.", "methods": { "register": { "signature": "(service_id: str, service_instance: Any)" }, "get": { "signature": "(service_id: str) -> Any" } } },
-        "settings_manager": { "description": "Manages persistent application and project settings.", "methods": { "get": { "signature": "(key: str, default: Any = None) -> Any" }, "set": { "signature": "(key: str, value: Any)" } } },
-        "worker_manager": { "description": "Manages a thread pool for running tasks in the background.", "methods": { "submit": { "signature": "(task_function: Callable, *args, **kwargs)" } } },
+        "plugin_manager": {
+            "description": "Discovers and loads plugin entry points.",
+            "methods": {
+                "load_plugins_from_folder": {
+                    "signature": "(folder_path: str)"
+                }
+            }
+        },
+        "service_manager": {
+            "description": "A unified manager for all core and plugin-contributed services.",
+            "methods": {
+                "register": {
+                    "signature": "(service_id: str, service_instance: Any)"
+                },
+                "get": {
+                    "signature": "(service_id: str) -> Any"
+                }
+            }
+        },
+        "settings_manager": {
+            "description": "Manages persistent application and project settings.",
+            "methods": {
+                "get": {
+                    "signature": "(key: str, default: Any = None) -> Any"
+                },
+                "set": {
+                    "signature": "(key: str, value: Any)"
+                }
+            }
+        },
+        "worker_manager": {
+            "description": "Manages a thread pool for running tasks in the background.",
+            "methods": {
+                "submit": {
+                    "signature": "(task_function: Callable, *args, **kwargs)"
+                }
+            }
+        },
         "history_manager": {
             "description": "NEW (RE-INTEGRATED): Manages the undo and redo stacks.",
             "methods": {
-                "add_command": { "signature": "(command: IUndoableCommand)", "description": "Adds a command to the undo stack. Called by the command_manager after execution." },
-                "undo": { "signature": "()" },
-                "redo": { "signature": "()" }
+                "add_command": {
+                    "signature": "(command: IUndoableCommand)",
+                    "description": "Adds a command to the undo stack. Called by the command_manager after execution."
+                },
+                "undo": {
+                    "signature": "()"
+                },
+                "redo": {
+                    "signature": "()"
+                }
             }
         },
         "project_manager": {
             "description": "NEW (RE-INTEGRATED): Manages loading, saving, and accessing project data.",
             "methods": {
-                "new_project": { "signature": "()" },
-                "load_project": { "signature": "(path: str)" },
-                "save_project": { "signature": "(path: str)" },
-                "get_active_project": { "signature": "() -> Optional[ProjectDataModel]" }
+                "new_project": {
+                    "signature": "()"
+                },
+                "load_project": {
+                    "signature": "(path: str)"
+                },
+                "save_project": {
+                    "signature": "(path: str)"
+                },
+                "get_active_project": {
+                    "signature": "() -> Optional[ProjectDataModel]"
+                }
             }
         },
         "database_service": {
             "description": "Manages the active database provider and exposes a clean API.",
             "methods": {
-                "connect": { "signature": "(provider_id: str, **kwargs)" },
-                "get": { "signature": "(table: str, key: str) -> Optional[Dict]" },
-                "put": { "signature": "(table: str, key: str, value: Dict) -> bool" },
-                "query": { "signature": "(table: str, filter_func: Callable) -> List[Dict]" }
+                "connect": {
+                    "signature": "(provider_id: str, **kwargs)"
+                },
+                "get": {
+                    "signature": "(table: str, key: str) -> Optional[Dict]"
+                },
+                "put": {
+                    "signature": "(table: str, key: str, value: Dict) -> bool"
+                },
+                "query": {
+                    "signature": "(table: str, filter_func: Callable) -> List[Dict]"
+                }
             }
         },
         "debug_manager": {
             "description": "NEW (RE-INTEGRATED): Provides tools for application introspection.",
             "methods": {
-                "get_full_report": { "signature": "() -> Dict", "description": "Gathers a comprehensive diagnostic report from all services." }
+                "get_full_report": {
+                    "signature": "() -> Dict",
+                    "description": "Gathers a comprehensive diagnostic report from all services."
+                }
             }
         }
     },
     "contribution_points": {
-        "services": { "description": "Contributes a service instance or class.", "schema": { "id": "string", "class": "string (path to class)", "instance": "object (pre-initialized instance)" } },
-        "commands": { "description": "Contributes an executable command.", "schema": { "id": "string", "class": "string" } },
-        "shell": { "description": "Contributes the main application window shell.", "schema": { "id": "string", "class": "string" } },
-        "ui_docks": { "description": "Contributes a QDockWidget to be hosted by the shell.", "schema": { "id": "string", "class": "string", "title": "string", "default_area": "string ('left', 'right', 'bottom')" } },
-        "ui_menu_items": { "description": "Contributes an item to the main menu bar.", "schema": { "id": "string", "path": "string", "command_id": "string" } },
-        "database_providers": { "description": "Contributes a data storage backend.", "schema": { "id": "string", "class": "string" } },
+        "services": {
+            "description": "Contributes a service instance or class.",
+            "schema": {
+                "id": "string",
+                "class": "string (path to class)",
+                "instance": "object (pre-initialized instance)"
+            }
+        },
+        "commands": {
+            "description": "Contributes an executable command.",
+            "schema": {
+                "id": "string",
+                "class": "string"
+            }
+        },
+        "shell": {
+            "description": "Contributes the main application window shell.",
+            "schema": {
+                "id": "string",
+                "class": "string"
+            }
+        },
+        "ui_docks": {
+            "description": "Contributes a QDockWidget to be hosted by the shell.",
+            "schema": {
+                "id": "string",
+                "class": "string",
+                "title": "string",
+                "default_area": "string ('left', 'right', 'bottom')"
+            }
+        },
+        "ui_menu_items": {
+            "description": "Contributes an item to the main menu bar.",
+            "schema": {
+                "id": "string",
+                "path": "string",
+                "command_id": "string"
+            }
+        },
+        "database_providers": {
+            "description": "Contributes a data storage backend.",
+            "schema": {
+                "id": "string",
+                "class": "string"
+            }
+        },
         "themes": {
             "description": "NEW (RE-INTEGRATED): Contributes a UI theme.",
             "schema": {
                 "id": "string",
                 "path": "string (relative path to a stylesheet or theme folder)"
             }
-        }
-    },
+        },
+        "template_bundles": {
+            "description": "Declares reusable template data collections (e.g. locations, NPC profiles, day cycles).",
+            "schema": {
+                "id": "string",
+                "template_type": "string",
+                "entries": "list[dict]"
+            }
+        },
+        "gameplay_orchestrators": {
+            "description": "Registers an orchestrator responsible for scheduling day cycles, events, and relationship arcs.",
+            "schema": {
+                "id": "string",
+                "class": "string",
+                "metadata": "object (optional)"
+            }
+        },
+        "prompt_handlers": {
+            "description": "Registers a handler that interprets free-form player prompts into structured intents.",
+            "schema": {
+                "id": "string",
+                "class": "string",
+                "priority": "integer (optional)",
+                "metadata": "object (optional)"
+            }
+        },
+        "prompt_suggesters": {
+            "description": "Provides context-aware prompt suggestions the player can click instead of typing.",
+            "schema": {
+                "id": "string",
+                "class": "string",
+                "metadata": "object (optional)"
+            }
+        },
+        "minigames": {
+            "description": "Registers mini-interactions that can influence relationship progress or stats.",
+            "schema": {
+                "id": "string",
+                "display_name": "string (optional)",
+                "rules": "object",
+                "metadata": "object (optional)"
+            }
+        },
+        "graph_node_types": {
+            "description": "Registers a node type descriptor for the scenario graph builder.",
+            "schema": {
+                "id": "string",
+                "label": "string (optional)",
+                "category": "string (optional)",
+                "properties": "object (optional)",
+                "actions": "object (optional)",
+                "metadata": "object (optional)"
+            }
+        },
+        "graph_relation_types": {
+            "description": "Declares relation metadata for the graph editor and runtime.",
+            "schema": {
+                "id": "string",
+                "label": "string (optional)",
+                "direction": "string (optional)",
+                "roles": "object (optional)",
+                "form": "list[object] (optional)",
+                "runtime_hook": "string (optional)",
+                "metadata": "object (optional)"
+            }
+        },
+        "graph_templates": {
+            "description": "Registers reusable subgraphs or scenario blueprints.",
+            "schema": {
+                "id": "string",
+                "graph": "object",
+                "metadata": "object (optional)"
+            }
+        },
+        "graph_validators": {
+            "description": "Adds validation passes that lint authored graphs.",
+            "schema": {
+                "id": "string (optional)",
+                "class": "string",
+                "metadata": "object (optional)"
+            }
+        },
+        "graph_runtime_handlers": {
+            "description": "Registers runtime handlers for relation or node-specific behaviour.",
+            "schema": {
+                "id": "string",
+                "class": "string",
+                "relation_types": "list[string] (optional)",
+                "metadata": "object (optional)"
+            }
+        },
+        "graph_personas": {
+            "description": "Defines orchestrator persona presets (tone, difficulty, behavioural knobs).",
+            "schema": {
+                "id": "string",
+                "label": "string (optional)",
+                "settings": "object",
+                "metadata": "object (optional)"
+            }
+        },
+        "graph_action_bundles": {
+            "description": "Provides reusable collections of node actions/variants.",
+            "schema": {
+                "id": "string",
+                "actions": "list[object]",
+                "metadata": "object (optional)"
+            }
+        },
     "plugin_structure_convention": {
         "description": "Defines the expected structure for a plugin folder.",
         "layout": [
             "my_plugin_folder/",
-            "├── __init__.py (can be empty)",
-            "├── plugin.py (REQUIRED: Contains the main 'Plugin' class)",
-            "└── (other .py files)"
+            "\u251c\u2500\u2500 __init__.py (can be empty)",
+            "\u251c\u2500\u2500 plugin.py (REQUIRED: Contains the main 'Plugin' class)",
+            "\u2514\u2500\u2500 (other .py files)"
         ]
     },
     "plugins": {
@@ -97,21 +323,42 @@
                         "id": "asset_service",
                         "description": "A service for managing and scanning media assets. (API inferred from usage in other plugins).",
                         "methods": {
-                            "set_asset_rating": { "signature": "(asset_id: str, rating: int)" },
-                            "get_or_create_thumbnail": { "signature": "(path: str, file_hash: str) -> str | None", "description": "Ensures a thumbnail exists and returns its path. Ideal for worker threads." },
-                            "get_asset_path": { "signature": "(asset_id: str) -> str | None" },
-                            "clear_clipboard_assets": { "signature": "()" },
-                            "delete_asset_by_path": { "signature": "(path: str)" },
-                            "find_duplicates": { "signature": "() -> List[Asset]" },
-                            "add_asset": { "signature": "(path: str) -> Asset | None" },
-                            "scan_folder": { "signature": "(folder_path: str)", "description": "Scans a folder for new assets in a background thread." }
+                            "set_asset_rating": {
+                                "signature": "(asset_id: str, rating: int)"
+                            },
+                            "get_or_create_thumbnail": {
+                                "signature": "(path: str, file_hash: str) -> str | None",
+                                "description": "Ensures a thumbnail exists and returns its path. Ideal for worker threads."
+                            },
+                            "get_asset_path": {
+                                "signature": "(asset_id: str) -> str | None"
+                            },
+                            "clear_clipboard_assets": {
+                                "signature": "()"
+                            },
+                            "delete_asset_by_path": {
+                                "signature": "(path: str)"
+                            },
+                            "find_duplicates": {
+                                "signature": "() -> List[Asset]"
+                            },
+                            "add_asset": {
+                                "signature": "(path: str) -> Asset | None"
+                            },
+                            "scan_folder": {
+                                "signature": "(folder_path: str)",
+                                "description": "Scans a folder for new assets in a background thread."
+                            }
                         }
                     },
                     {
                         "id": "thumbnail_service",
                         "description": "Service dedicated to creating and caching thumbnails for assets. Intended for use in background threads.",
                         "methods": {
-                            "get_thumbnail": { "signature": "(path: str, size: QSize) -> QPixmap | None", "description": "Retrieves a QPixmap for a given file path, using an in-memory cache." }
+                            "get_thumbnail": {
+                                "signature": "(path: str, size: QSize) -> QPixmap | None",
+                                "description": "Retrieves a QPixmap for a given file path, using an in-memory cache."
+                            }
                         }
                     }
                 ],
@@ -134,16 +381,33 @@
             },
             "events": {
                 "publishes": [
-                    { "name": "assets:database_updated", "description": "Fired when assets are added or removed, signaling the UI to refresh." },
-                    { "name": "assets:metadata_updated", "description": "Fired when an asset's metadata (e.g., rating) is changed." }
+                    {
+                        "name": "assets:database_updated",
+                        "description": "Fired when assets are added or removed, signaling the UI to refresh."
+                    },
+                    {
+                        "name": "assets:metadata_updated",
+                        "description": "Fired when an asset's metadata (e.g., rating) is changed."
+                    }
                 ],
                 "subscribes_to": [
-                    { "name": "shell:ready", "description": "Used to trigger the initial scan of library folders when the application UI is ready." }
+                    {
+                        "name": "shell:ready",
+                        "description": "Used to trigger the initial scan of library folders when the application UI is ready."
+                    }
                 ]
             },
             "settings": [
-                { "key": "library_folders", "type": "List[str]", "description": "A list of paths to folders that should be scanned for assets on startup." },
-                { "key": "output_directory", "type": "str", "description": "The default directory for generated media, which is also scanned for assets." }
+                {
+                    "key": "library_folders",
+                    "type": "List[str]",
+                    "description": "A list of paths to folders that should be scanned for assets on startup."
+                },
+                {
+                    "key": "output_directory",
+                    "type": "str",
+                    "description": "The default directory for generated media, which is also scanned for assets."
+                }
             ]
         },
         "importer": {
@@ -183,13 +447,19 @@
             },
             "events": {
                 "publishes": [
-                    { "name": "shell:ready", "description": "Fired when the main UI has been constructed and is ready for other plugins to populate it." }
+                    {
+                        "name": "shell:ready",
+                        "description": "Fired when the main UI has been constructed and is ready for other plugins to populate it."
+                    }
                 ]
             }
         },
         "generation": {
             "description": "Placeholder for a Generation plugin, likely responsible for AI-based media creation or processing.",
-            "notes": ["Schema not yet defined. Source files are needed for analysis."]
+            "notes": [
+                "Schema not yet defined. Source files are needed for analysis."
+            ]
         }
     }
 }
+

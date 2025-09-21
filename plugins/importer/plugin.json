@@ -1,0 +1,13 @@
+{
+  "uuid": "892a4c87-50ff-4284-975e-3ef6e6cb3f67",
+  "name": "Web Importer",
+  "type": "plugin",
+  "version": "1.0.0",
+  "tags": [
+    "importer"
+  ],
+  "entry_point": "plugins.importer.plugin:register_plugin",
+  "dependencies": [
+    "Core Services"
+  ]
+}

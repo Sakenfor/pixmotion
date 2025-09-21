@@ -12,6 +12,7 @@ from PIL import Image
 
 class PixverseService:
     """Service to interact with the Pixverse API and log generations to the database."""
+
     BASE_URL = "https://app-api.pixverse.ai/openapi/v2"
 
     MAX_DIMENSION = 4000
@@ -28,7 +29,8 @@ class PixverseService:
         service = self.framework.get_service(service_name)
         if service is None:
             raise RuntimeError(
-                f"The required service '{service_name}' could not be found. Check application startup order.")
+                f"The required service '{service_name}' could not be found. Check application startup order."
+            )
         return service
 
     def generate_video(self, **kwargs):
@@ -39,7 +41,8 @@ class PixverseService:
         try:
             asset_service = self._get_required_service("asset_service")
             headers = self._get_headers()
-            if not headers.get("API-KEY"): raise ValueError("API Key is missing.")
+            if not headers.get("API-KEY"):
+                raise ValueError("API Key is missing.")
 
             prompt = kwargs.get("prompt", "a beautiful landscape")
 
@@ -51,21 +54,27 @@ class PixverseService:
                 path1 = asset_service.get_asset_path(asset_id1)
                 if not path1:
                     raise FileNotFoundError(
-                        f"Asset ID '{asset_id1}' was provided, but no corresponding path was found.")
+                        f"Asset ID '{asset_id1}' was provided, but no corresponding path was found."
+                    )
 
             if asset_id2:
                 path2 = asset_service.get_asset_path(asset_id2)
                 if not path2:
-                    self.log.warning(f"Asset ID '{asset_id2}' was provided, but no corresponding path was found.")
+                    self.log.warning(
+                        f"Asset ID '{asset_id2}' was provided, but no corresponding path was found."
+                    )
 
             if path1 and not os.path.exists(path1):
                 raise FileNotFoundError(f"Input image path does not exist: {path1}")
 
             payload = {
-                "prompt": prompt, "model": kwargs.get("model", "v5"),
-                "quality": kwargs.get("quality", "360p"), "duration": 5
+                "prompt": prompt,
+                "model": kwargs.get("model", "v5"),
+                "quality": kwargs.get("quality", "360p"),
+                "duration": 5,
             }
-            if kwargs.get("camera_movement") != "None": payload["camera_movement"] = kwargs.get("camera_movement")
+            if kwargs.get("camera_movement") != "None":
+                payload["camera_movement"] = kwargs.get("camera_movement")
 
             if path1 and path2:
                 payload["first_frame_img"] = self._upload_image(path1, headers)
@@ -77,57 +86,90 @@ class PixverseService:
             else:
                 raise ValueError("No input images provided.")
 
-            resp = requests.post(self.BASE_URL + endpoint, headers=headers, json=payload, timeout=30)
+            input_asset1_id = kwargs.get("input_asset1_id")
+            if not input_asset1_id and path1:
+                ensured_asset = asset_service.add_asset(path1)
+                if ensured_asset:
+                    input_asset1_id = ensured_asset.id
+
+            input_asset2_id = kwargs.get("input_asset2_id")
+            if not input_asset2_id and path2:
+                ensured_asset = asset_service.add_asset(path2)
+                if ensured_asset:
+                    input_asset2_id = ensured_asset.id
+
+            resp = requests.post(
+                self.BASE_URL + endpoint, headers=headers, json=payload, timeout=30
+            )
             resp.raise_for_status()
 
             json_data = resp.json()
             self.log.debug(f"Generation start response: {json_data}")
 
             if json_data.get("ErrCode", 0) != 0:
-                error_message = json_data.get("ErrMsg", "Unknown API error when starting generation.")
-                raise Exception(f"API Error: {error_message} (ErrCode: {json_data.get('ErrCode')})")
+                error_message = json_data.get(
+                    "ErrMsg", "Unknown API error when starting generation."
+                )
+                raise Exception(
+                    f"API Error: {error_message} (ErrCode: {json_data.get('ErrCode')})"
+                )
 
-            if 'Resp' not in json_data or 'video_id' not in json_data.get('Resp', {}):
-                raise KeyError("The key 'Resp' or 'video_id' was not found in the successful API response.")
+            if "Resp" not in json_data or "video_id" not in json_data.get("Resp", {}):
+                raise KeyError(
+                    "The key 'Resp' or 'video_id' was not found in the successful API response."
+                )
 
-            video_id = json_data['Resp']['video_id']
+            video_id = json_data["Resp"]["video_id"]
             start_time = time.time()
             timeout_seconds = 300
 
             while time.time() - start_time < timeout_seconds:
                 time.sleep(5)
-                resp = requests.get(f"{self.BASE_URL}/video/result/{video_id}", headers=headers, timeout=15)
+                resp = requests.get(
+                    f"{self.BASE_URL}/video/result/{video_id}",
+                    headers=headers,
+                    timeout=15,
+                )
                 resp.raise_for_status()
 
                 data = resp.json()
                 self.log.debug(f"Polling response: {data}")
 
                 if data.get("ErrCode", 0) != 0:
-                    error_message = data.get("ErrMsg", "Unknown API error during polling.")
-                    raise Exception(f"API Error: {error_message} (ErrCode: {data.get('ErrCode')})")
+                    error_message = data.get(
+                        "ErrMsg", "Unknown API error during polling."
+                    )
+                    raise Exception(
+                        f"API Error: {error_message} (ErrCode: {data.get('ErrCode')})"
+                    )
 
-                if 'Resp' not in data:
-                    raise KeyError("The key 'Resp' was not found in the successful polling response.")
+                if "Resp" not in data:
+                    raise KeyError(
+                        "The key 'Resp' was not found in the successful polling response."
+                    )
 
-                resp_data = data['Resp']
-                status = resp_data.get('status')
+                resp_data = data["Resp"]
+                status = resp_data.get("status")
                 self.log.info(f"Polling video '{video_id}', current status: {status}")
 
                 if status == 1:
-                    video_url = resp_data['url'];
+                    video_url = resp_data["url"]
                     break
                 elif status in [7, 8] or (status is not None and status < 0):
                     raise Exception(
-                        f"API generation failed. Status: {status}, Message: {resp_data.get('msg', 'No message')}")
+                        f"API generation failed. Status: {status}, Message: {resp_data.get('msg', 'No message')}"
+                    )
             else:
-                raise TimeoutError(f"Video generation timed out after {timeout_seconds} seconds.")
+                raise TimeoutError(
+                    f"Video generation timed out after {timeout_seconds} seconds."
+                )
 
             # --- Download and Database Logging ---
             title = kwargs.get("title")
             final_path = self._get_output_path(video_id, title)
             video_data = requests.get(video_url, timeout=60)
             video_data.raise_for_status()
-            with open(final_path, 'wb') as f:
+            with open(final_path, "wb") as f:
                 f.write(video_data.content)
             self.log.info(f"Video downloaded to {final_path}")
 
@@ -138,20 +180,30 @@ class PixverseService:
                 # Now, in a separate unit of work, log the generation event
                 db_service = self._get_required_service("database_service")
                 with db_service.get_session() as session:
+                    generation_settings = {
+                        'model': kwargs.get('model'),
+                        'quality': kwargs.get('quality'),
+                        'duration': kwargs.get('duration'),
+                        'camera_movement': kwargs.get('camera_movement'),
+                        'video_id': video_id,
+                        'payload': payload,
+                    }
+                    generation_settings = {k: v for k, v in generation_settings.items() if v is not None}
+
                     gen_record = Generation(
                         prompt=prompt,
-                        model=kwargs.get("model"),
-                        quality=kwargs.get("quality"),
-                        duration=kwargs.get("duration"),
                         output_asset_id=output_asset.id,
-                        input_asset1_id=kwargs.get("input_asset1_id"),
-                        input_asset2_id=kwargs.get("input_asset2_id")
+                        input_asset1_id=input_asset1_id,
+                        input_asset2_id=input_asset2_id,
+                        settings=generation_settings or None,
                     )
                     session.add(gen_record)
                     session.commit()
                     self.log.info(f"Generation record created for {final_path}")
 
-            self.events.publish("pixverse:generation_finished", success=True, output_path=final_path)
+            self.events.publish(
+                "pixverse:generation_finished", success=True, output_path=final_path
+            )
             self.log.notification(f"Video saved: {os.path.basename(final_path)}")
 
         except Exception as e:
@@ -169,7 +221,11 @@ class PixverseService:
         os.makedirs(output_dir, exist_ok=True)
 
         if title and title.strip():
-            base_name = "".join(c for c in title if c.isalnum() or c in (' ', '_')).rstrip().replace(' ', '_')
+            base_name = (
+                "".join(c for c in title if c.isalnum() or c in (" ", "_"))
+                .rstrip()
+                .replace(" ", "_")
+            )
             filename = f"{base_name}_{video_id}.mp4"
         else:
             filename = f"{video_id}.mp4"
@@ -181,34 +237,52 @@ class PixverseService:
         try:
             with Image.open(image_path) as img:
                 if max(img.size) > self.MAX_DIMENSION:
-                    self.log.info(f"Image dimensions ({img.width}x{img.height}) exceed max. Resizing.")
-                    img.thumbnail((self.MAX_DIMENSION, self.MAX_DIMENSION), Image.Resampling.LANCZOS)
+                    self.log.info(
+                        f"Image dimensions ({img.width}x{img.height}) exceed max. Resizing."
+                    )
+                    img.thumbnail(
+                        (self.MAX_DIMENSION, self.MAX_DIMENSION),
+                        Image.Resampling.LANCZOS,
+                    )
 
                 buffer = io.BytesIO()
                 quality = 95
                 if img.mode in ("RGBA", "P"):
                     img = img.convert("RGB")
-                img.save(buffer, format='JPEG', quality=quality)
+                img.save(buffer, format="JPEG", quality=quality)
 
-                while buffer.getbuffer().nbytes > self.MAX_FILE_SIZE_BYTES and quality > 50:
+                while (
+                    buffer.getbuffer().nbytes > self.MAX_FILE_SIZE_BYTES
+                    and quality > 50
+                ):
                     self.log.info(
-                        f"Image file size ({buffer.getbuffer().nbytes / 1024 / 1024:.2f}MB) exceeds limit. Reducing quality to {quality - 5}.")
+                        f"Image file size ({buffer.getbuffer().nbytes / 1024 / 1024:.2f}MB) exceeds limit. Reducing quality to {quality - 5}."
+                    )
                     buffer.seek(0)
                     buffer.truncate(0)
                     quality -= 5
-                    img.save(buffer, format='JPEG', quality=quality)
+                    img.save(buffer, format="JPEG", quality=quality)
 
                 if buffer.getbuffer().nbytes > self.MAX_FILE_SIZE_BYTES:
-                    raise ValueError(f"Could not reduce image size below {self.MAX_FILE_SIZE_MB}MB.")
+                    raise ValueError(
+                        f"Could not reduce image size below {self.MAX_FILE_SIZE_MB}MB."
+                    )
 
                 buffer.seek(0)
                 file_name = os.path.basename(image_path)
 
-                resp = requests.post(f"{self.BASE_URL}/image/upload", headers=headers,
-                                     files={'image': (file_name, buffer, 'image/jpeg')}, timeout=60)
+                resp = requests.post(
+                    f"{self.BASE_URL}/image/upload",
+                    headers=headers,
+                    files={"image": (file_name, buffer, "image/jpeg")},
+                    timeout=60,
+                )
 
         except Exception as e:
-            self.log.error(f"Failed during image preprocessing or upload for {image_path}: {e}", exc_info=True)
+            self.log.error(
+                f"Failed during image preprocessing or upload for {image_path}: {e}",
+                exc_info=True,
+            )
             raise
 
         resp.raise_for_status()
@@ -217,10 +291,16 @@ class PixverseService:
         self.log.debug(f"Image upload response: {json_data}")
 
         if json_data.get("ErrCode", 0) != 0:
-            error_message = json_data.get("ErrMsg", "Unknown API error during image upload.")
-            raise Exception(f"API Error: {error_message} (ErrCode: {json_data.get('ErrCode')})")
+            error_message = json_data.get(
+                "ErrMsg", "Unknown API error during image upload."
+            )
+            raise Exception(
+                f"API Error: {error_message} (ErrCode: {json_data.get('ErrCode')})"
+            )
 
-        if 'Resp' not in json_data or 'img_id' not in json_data.get('Resp', {}):
-            raise KeyError("The key 'Resp' or 'img_id' was not found in the successful API response.")
+        if "Resp" not in json_data or "img_id" not in json_data.get("Resp", {}):
+            raise KeyError(
+                "The key 'Resp' or 'img_id' was not found in the successful API response."
+            )
 
-        return json_data['Resp']['img_id']
+        return json_data["Resp"]["img_id"]

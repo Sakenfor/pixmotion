@@ -1,9 +1,18 @@
 # D:/My Drive/code/pixmotion/plugins/assets/widgets.py
 import os
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QPushButton, QToolButton,
-                             QLabel, QHBoxLayout, QStackedWidget, QStyle, QComboBox)
-from PyQt6.QtCore import (Qt, QSize, QUrl, QEvent, pyqtSignal, QPointF)
-from PyQt6.QtGui import (QPixmap, QCursor, QPainter, QPolygonF, QColor)
+from PyQt6.QtWidgets import (
+    QWidget,
+    QVBoxLayout,
+    QPushButton,
+    QToolButton,
+    QLabel,
+    QHBoxLayout,
+    QStackedWidget,
+    QStyle,
+    QComboBox,
+)
+from PyQt6.QtCore import Qt, QSize, QUrl, QEvent, pyqtSignal, QPointF
+from PyQt6.QtGui import QPixmap, QCursor, QPainter, QPolygonF, QColor
 from PyQt6.QtMultimedia import QMediaPlayer
 from PyQt6.QtMultimediaWidgets import QVideoWidget
 from .views import ImageViewer
@@ -11,6 +20,7 @@ from .views import ImageViewer
 
 class AssetBrowserTitleBar(QWidget):
     """A custom title bar for the Asset Browser dock with integrated filter controls."""
+
     add_folder_clicked = pyqtSignal()
     rating_filter_changed = pyqtSignal(int)
     type_filter_changed = pyqtSignal(str)
@@ -27,7 +37,9 @@ class AssetBrowserTitleBar(QWidget):
         # --- Add Folder Button ---
         add_folder_btn = QToolButton()
         add_folder_btn.setText("Add Folder")
-        add_folder_btn.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_DirOpenIcon))
+        add_folder_btn.setIcon(
+            self.style().standardIcon(QStyle.StandardPixmap.SP_DirOpenIcon)
+        )
         add_folder_btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         add_folder_btn.clicked.connect(self.add_folder_clicked.emit)
         layout.addWidget(add_folder_btn)
@@ -40,7 +52,9 @@ class AssetBrowserTitleBar(QWidget):
 
         type_filter_combo = QComboBox()
         type_filter_combo.addItems(["All", "Image", "Video"])
-        type_filter_combo.currentTextChanged.connect(lambda text: self.type_filter_changed.emit(text.lower()))
+        type_filter_combo.currentTextChanged.connect(
+            lambda text: self.type_filter_changed.emit(text.lower())
+        )
         layout.addWidget(type_filter_combo)
 
 
@@ -48,7 +62,9 @@ class PreviewPopup(QWidget):
     """A floating window for asset previews on hover, supporting images and video."""
 
     def __init__(self, parent=None):
-        super().__init__(parent, Qt.WindowType.ToolTip | Qt.WindowType.BypassWindowManagerHint)
+        super().__init__(
+            parent, Qt.WindowType.ToolTip | Qt.WindowType.BypassWindowManagerHint
+        )
         self.setLayout(QVBoxLayout())
         self.layout().setContentsMargins(0, 0, 0, 0)
         self.setFixedSize(256, 256)
@@ -68,7 +84,7 @@ class PreviewPopup(QWidget):
 
     def show_preview(self, path):
         _, ext = os.path.splitext(path.lower())
-        if ext in ['.mp4', '.mov', '.avi']:
+        if ext in [".mp4", ".mov", ".avi"]:
             self.media_player.setSource(QUrl.fromLocalFile(path))
             self.stacked_widget.setCurrentWidget(self.video_widget)
             self.media_player.play()
@@ -98,8 +114,8 @@ class AssetHoverManager(QWidget):
             index = self.view.indexAt(event.pos())
             if index.isValid():
                 asset_data = index.data(Qt.ItemDataRole.UserRole)
-                if asset_data and asset_data.get('path'):
-                    self.popup.show_preview(asset_data['path'])
+                if asset_data and asset_data.get("path"):
+                    self.popup.show_preview(asset_data["path"])
                     return True
             self.popup.hide_popup()
         if event.type() == QEvent.Type.Leave:
@@ -109,6 +125,7 @@ class AssetHoverManager(QWidget):
 
 class StarRatingFilter(QWidget):
     """A widget for filtering assets by star rating."""
+
     filter_changed = pyqtSignal(int)
 
     def __init__(self, parent=None):
@@ -125,12 +142,20 @@ class StarRatingFilter(QWidget):
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        star_polygon = QPolygonF([
-            QPointF(0.5, 0.0), QPointF(0.61, 0.35), QPointF(1.0, 0.35),
-            QPointF(0.68, 0.6), QPointF(0.79, 0.95), QPointF(0.5, 0.7),
-            QPointF(0.21, 0.95), QPointF(0.32, 0.6), QPointF(0.0, 0.35),
-            QPointF(0.39, 0.35)
-        ])
+        star_polygon = QPolygonF(
+            [
+                QPointF(0.5, 0.0),
+                QPointF(0.61, 0.35),
+                QPointF(1.0, 0.35),
+                QPointF(0.68, 0.6),
+                QPointF(0.79, 0.95),
+                QPointF(0.5, 0.7),
+                QPointF(0.21, 0.95),
+                QPointF(0.32, 0.6),
+                QPointF(0.0, 0.35),
+                QPointF(0.39, 0.35),
+            ]
+        )
         star_size = 12
         for i in range(5):
             painter.save()
@@ -145,7 +170,8 @@ class StarRatingFilter(QWidget):
         star_size = 12
         click_x = event.pos().x()
         new_rating = int(click_x / (star_size + 2)) + 1
-        if new_rating > 5: new_rating = 5
+        if new_rating > 5:
+            new_rating = 5
         self.set_rating(0 if new_rating == self._rating else new_rating)
 
     def minimumSizeHint(self):

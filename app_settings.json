@@ -1,6 +1,6 @@
 {
     "pixverse_api_key": "sk-435407d6b619f631a43a5019e63c340c",
-    "output_directory": "generated_media",
+    "output_directory": "data/generated_media",
     "database_filename": "pixmotion.db",
     "library_folders": [
         "A:/pixverse_ai/good images/mindy vega",
@@ -9,12 +9,18 @@
         "A:/pixverse_ai/good images/crissy moran",
         "A:/pixverse_ai/good images/inthecrack"
     ],
-    "window_geometry": "01d9d0cb00030000000001c0000000ba000002870000013b000001c0000000d8000002870000013b00000000000000000600000001c0000000d8000002870000013b",
-    "window_state": "000000ff00000000fd0000000200000000000005a4000003f3fc0200000002fc00000021000003f30000000000fffffffa000000010100000002fb0000001e00670065006e0065007200610074006f0072005f00700061006e0065006c030000025b00000101000003a5000002bffb0000001a00610073007300650074005f00620072006f007700730065007201000000000000070b0000000000000000fb0000001a00610073007300650074005f00620072006f0077007300650072010000002100000368000000000000000000000001000002be00000368fc0200000001fb0000001e00670065006e0065007200610074006f0072005f00700061006e0065006c0100000021000003680000000000000000000000000000000000000004000000040000000800000008fc0000000100000000000000010000002000730065007400740069006e00670073005f0074006f006f006c0062006100720100000000ffffffff014104c3001c80a3",
+    "window_geometry": "01d9d0cb0003000000000063000001aa000002fb0000039b00000063000001c8000002fb0000039b0000000000000000080000000063000001c8000002fb0000039b",
+    "window_state": "000000ff00000000fd0000000200000000000002990000019efc0200000003fb0000001c00670072006100700068005f006500780070006c006f007200650072030000031a000001820000046f00000267fc000000210000019e000000f500fffffffa000000010100000002fb0000001e00670065006e0065007200610074006f0072005f00700061006e0065006c03000003e70000006400000192000002defb0000001a00610073007300650074005f00620072006f007700730065007201000000000000070b0000022600fffffffb0000001a00610073007300650074005f00620072006f00770073006500720100000021000002410000000000000000000000010000029200000241fc0200000002fb0000001e00670065006e0065007200610074006f0072005f00700061006e0065006c0100000021000003680000000000000000fb0000001c00670072006100700068005f006500780070006c006f00720065007203000004fa000001820000029500000241000000000000019e00000004000000040000000800000008fc0000000200000000000000000000000200000000",
     "panel_states": {
+        "asset_browser": {
+            "selected_folder": "A:/pixverse_ai/good images/inthecrack"
+        },
+        "graph_explorer": {
+            "selected_graph": "1"
+        },
         "generator_panel": {
             "title": "",
-            "prompt": "woman is fixing the drawers and organizing, with inviting hip movements carelessly, suddenly a realistic gorilla in a suit comes and starts spanking her butcheeks, she enjoys it but pretends she is still adjusting the drawers, gorilla keeps spanking and woman starts having small hip sway movements that are more inviting (her posture unchanged during whole video) with slight massaging movements too throughout end",
+            "prompt": "as woman is shovering, we suddenly see gorilla's hands show up form bottom of image, they slowly grab the butcheeks and start massaging them in grabbing motion in circular style (first they drag butcheeks outwards then upwards then downwards and inwards and on repeat), woman slowly starts matching the motion with her lower body, leaning forward and arching her spine making the shape of her butcheeks be perfectly displayed as gorilla speeds up and suddenly pulls the part of panty that is inbetween butcheeks to side, leaving it there and that is when woman starts to have kind of dance hip sway towards gorilla's face with heavy breathing as gorilla aproaches butcheeks with face up close",
             "input_asset1_id": null,
             "input_asset2_id": null,
             "model": "v5",
@@ -24,8 +30,22 @@
             "style": "None",
             "motion_mode": "normal",
             "seed": null,
-            "negative_prompt": null
+            "negative_prompt": "objects merging"
         }
     },
-    "log_level": "DEBUG"
+    "log_level": "ERROR",
+    "emotion_analyzer": {
+        "face_cascade_path": "",
+        "emotion_model_path": "data/ai_models/motion-ferplus-8.onnx",
+        "emotion_labels": [
+            "neutral",
+            "happy",
+            "sad",
+            "angry",
+            "surprised"
+        ],
+        "emotion_input_size": 224,
+        "max_frames": 360,
+        "face_stride": 3
+    }
 }

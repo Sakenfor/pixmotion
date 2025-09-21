@@ -1,0 +1,15 @@
+{
+  "uuid": "tag-layers-core",
+  "name": "Tag Layers",
+  "type": "plugin",
+  "version": "1.0.0",
+  "tags": [
+    "assets",
+    "tags"
+  ],
+  "entry_point": "plugins.tag_layers.plugin:register_plugin",
+  "dependencies": [
+    "Core Services",
+    "Asset Library"
+  ]
+}

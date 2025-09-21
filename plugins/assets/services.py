@@ -13,7 +13,8 @@ class AssetService:
     This service contains the business logic and delegates database
     operations to the AssetRepository.
     """
-    SUPPORTED_TYPES = ['.png', '.jpg', '.jpeg', '.mp4', '.mov', '.avi']
+
+    SUPPORTED_TYPES = [".png", ".jpg", ".jpeg", ".mp4", ".mov", ".avi", ".webm", ".mkv"]
     THUMBNAIL_SIZE = (128, 128)
 
     def __init__(self, framework, repository):
@@ -25,7 +26,8 @@ class AssetService:
         self.events.subscribe("shell:ready", self._initial_scan)
 
     def set_asset_rating(self, asset_id, rating):
-        if not asset_id or rating not in range(0, 6): return
+        if not asset_id or rating not in range(0, 6):
+            return
         if self.repository.update_rating(asset_id, rating):
             self.events.publish("assets:metadata_updated")
 
@@ -36,7 +38,9 @@ class AssetService:
         return self.repository.get_path_by_id(asset_id)
 
     def clear_clipboard_assets(self):
-        clipboard_dir = os.path.join(self.framework.get_project_root(), "assets", "clipboard")
+        clipboard_dir = os.path.join(
+            self.framework.get_project_root(), "assets", "clipboard"
+        )
         if not os.path.isdir(clipboard_dir):
             self.log.info("Clipboard folder does not exist; nothing to clear.")
             return
@@ -47,25 +51,33 @@ class AssetService:
             return
 
         for asset in clipboard_assets:
-            if os.path.exists(asset.path): os.remove(asset.path)
-            if asset.thumbnail_path and os.path.exists(asset.thumbnail_path): os.remove(asset.thumbnail_path)
+            if os.path.exists(asset.path):
+                os.remove(asset.path)
+            if asset.thumbnail_path and os.path.exists(asset.thumbnail_path):
+                os.remove(asset.thumbnail_path)
 
         self.repository.delete_many(clipboard_assets)
-        self.log.notification(f"Cleared {len(clipboard_assets)} assets from the clipboard.")
+        self.log.notification(
+            f"Cleared {len(clipboard_assets)} assets from the clipboard."
+        )
         self.events.publish("assets:database_updated")
 
     def delete_asset_by_path(self, path: str):
         # Publish a cancellable event before deleting
-        event_data = {'path': path, 'is_cancelled': False}
+        event_data = {"path": path, "is_cancelled": False}
         self.events.publish_chain("assets:before_delete", event_data)
 
-        if event_data['is_cancelled']:
-            self.log.notification(f"Deletion cancelled for {os.path.basename(path)} by a plugin.")
+        if event_data["is_cancelled"]:
+            self.log.notification(
+                f"Deletion cancelled for {os.path.basename(path)} by a plugin."
+            )
             return
 
         deleted_asset = self.repository.delete_by_path(path)
         if deleted_asset:
-            if deleted_asset.thumbnail_path and os.path.exists(deleted_asset.thumbnail_path):
+            if deleted_asset.thumbnail_path and os.path.exists(
+                deleted_asset.thumbnail_path
+            ):
                 os.remove(deleted_asset.thumbnail_path)
             if os.path.exists(deleted_asset.path):
                 os.remove(deleted_asset.path)
@@ -90,18 +102,25 @@ class AssetService:
             return self.repository.get_by_path(path)
 
         file_hash = self._get_file_hash(path)
-        if not file_hash: return None
+        if not file_hash:
+            return None
 
         existing_by_hash = self.repository.get_by_id(file_hash)
         if existing_by_hash:
-            self.log.info(f"Asset content already exists. Path: {path}, Hash: {file_hash}")
+            self.log.info(
+                f"Asset content already exists. Path: {path}, Hash: {file_hash}"
+            )
             return existing_by_hash
 
         ext = os.path.splitext(path)[1].lower()
-        asset_type = AssetType.VIDEO if ext in ['.mp4', '.mov', '.avi'] else AssetType.IMAGE
+        asset_type = (
+            AssetType.VIDEO if ext in [".mp4", ".mov", ".avi", ".webm", ".mkv"] else AssetType.IMAGE
+        )
         thumb_path = self._create_thumbnail(path, file_hash)
 
-        new_asset = Asset(id=file_hash, path=path, asset_type=asset_type, thumbnail_path=thumb_path)
+        new_asset = Asset(
+            id=file_hash, path=path, asset_type=asset_type, thumbnail_path=thumb_path
+        )
 
         created_asset = self.repository.add(new_asset)
         if created_asset:
@@ -118,7 +137,9 @@ class AssetService:
 
         def scan_task():
             self.log.info(f"Scanning folder: {folder_path}...")
-            existing_paths = self.repository.get_existing_paths_in_folder(abs_folder_path)
+            existing_paths = self.repository.get_existing_paths_in_folder(
+                abs_folder_path
+            )
             new_files_found = 0
             for root, _, files in os.walk(abs_folder_path):
                 for file in files:
@@ -136,7 +157,7 @@ class AssetService:
     def _get_file_hash(self, path):
         try:
             h = hashlib.sha256()
-            with open(path, 'rb') as f:
+            with open(path, "rb") as f:
                 while chunk := f.read(8192):
                     h.update(chunk)
             return h.hexdigest()
@@ -145,20 +166,25 @@ class AssetService:
             return None
 
     def _create_thumbnail(self, path, file_hash):
-        thumb_dir = os.path.join(self.framework.get_project_root(), "data", "thumbnails")
+        thumb_dir = os.path.join(
+            self.framework.get_project_root(), "data", "thumbnails"
+        )
         os.makedirs(thumb_dir, exist_ok=True)
         thumb_path = os.path.join(thumb_dir, f"{file_hash}.jpg")
 
         if os.path.exists(thumb_path):
             try:
                 with Image.open(thumb_path) as cached_thumb:
-                    if cached_thumb.size == self.THUMBNAIL_SIZE: return thumb_path
+                    if cached_thumb.size == self.THUMBNAIL_SIZE:
+                        return thumb_path
             except Exception:
-                self.log.warning(f"Could not read cached thumbnail for {os.path.basename(path)}. Regenerating.")
+                self.log.warning(
+                    f"Could not read cached thumbnail for {os.path.basename(path)}. Regenerating."
+                )
 
         try:
             img = None
-            if os.path.splitext(path)[1].lower() in ['.mp4', '.mov', '.avi']:
+            if os.path.splitext(path)[1].lower() in [".mp4", ".mov", ".avi", ".webm", ".mkv"]:
                 cap = cv2.VideoCapture(path)
                 if cap.isOpened():
                     ret, frame = cap.read()

@@ -1,0 +1,10 @@
+{
+  "uuid": "8e89f0f3-9577-4c5f-9f74-1f62ff0f4f1d",
+  "name": "Graph Editor",
+  "type": "plugin",
+  "version": "0.1.0",
+  "tags": ["graph", "editor"],
+  "entry_point": "plugins.graph_editor.plugin:register_plugin",
+  "dependencies": ["Core Services"]
+}
+

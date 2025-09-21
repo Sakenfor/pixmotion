@@ -1,0 +1,13 @@
+{
+  "uuid": "a9572874-8573-4c1b-849a-bb92d340ff4d",
+  "name": "Asset Library",
+  "type": "plugin",
+  "version": "1.0.0",
+  "tags": [
+    "assets"
+  ],
+  "entry_point": "plugins.assets.plugin:register_plugin",
+  "dependencies": [
+    "Core Services"
+  ]
+}

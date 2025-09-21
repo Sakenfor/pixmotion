@@ -31,6 +31,7 @@ class PasteFromClipboardCommand(ICommand):
         self.asset_service = framework.get_service("asset_service")
         self.importer_service = framework.get_service("web_importer_service")
         self.framework = framework
+
     def execute(self, **kwargs) -> Asset | None:
         clipboard = QApplication.clipboard()
         mime_data = clipboard.mimeData()
@@ -40,11 +41,15 @@ class PasteFromClipboardCommand(ICommand):
             self.log.info("Pasting image from clipboard...")
             q_image = clipboard.image()
             if q_image.isNull():
-                self.log.error("Paste failed: Clipboard has image data, but it could not be read.")
+                self.log.error(
+                    "Paste failed: Clipboard has image data, but it could not be read."
+                )
                 return None
             try:
                 # --- FIX: Use the project root to build a reliable path ---
-                output_dir = os.path.join(self.framework.get_project_root(), "assets", "clipboard")
+                output_dir = os.path.join(
+                    self.framework.get_project_root(), "assets", "clipboard"
+                )
                 os.makedirs(output_dir, exist_ok=True)
                 filename = f"paste_{uuid.uuid4().hex[:8]}.png"
                 filepath = os.path.join(output_dir, filename)
@@ -52,7 +57,9 @@ class PasteFromClipboardCommand(ICommand):
                 self.log.info(f"Saved clipboard image to: {filepath}")
                 return self.asset_service.add_asset(filepath)
             except Exception as e:
-                self.log.error(f"Failed to create asset from clipboard image: {e}", exc_info=True)
+                self.log.error(
+                    f"Failed to create asset from clipboard image: {e}", exc_info=True
+                )
                 return None
 
         elif mime_data.hasUrls():
@@ -71,16 +78,19 @@ class PasteFromClipboardCommand(ICommand):
                 if local_path:
                     return self.asset_service.add_asset(local_path)
 
-        self.log.info("Paste command ignored: No compatible content (Image, URL, Link-Text) found on clipboard.")
+        self.log.info(
+            "Paste command ignored: No compatible content (Image, URL, Link-Text) found on clipboard."
+        )
         return None
 
+
 class ClearClipboardCommand(ICommand):
-        """Command to clear all assets from the clipboard folder."""
+    """Command to clear all assets from the clipboard folder."""
 
-        def __init__(self, framework):
-            self.framework = framework
+    def __init__(self, framework):
+        self.framework = framework
 
-        def execute(self, **kwargs):
-            asset_service = self.framework.get_service("asset_service")
-            if asset_service:
-                asset_service.clear_clipboard_assets()
+    def execute(self, **kwargs):
+        asset_service = self.framework.get_service("asset_service")
+        if asset_service:
+            asset_service.clear_clipboard_assets()

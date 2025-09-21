@@ -1,9 +1,15 @@
 # story_studio_project/plugins/shell/main_window.py
 import os
-from PyQt6.QtWidgets import ( QMainWindow, QStatusBar, QDockWidget, QLabel, QToolBar,
-    QComboBox )
+from PyQt6.QtWidgets import (
+    QMainWindow,
+    QStatusBar,
+    QDockWidget,
+    QLabel,
+)
 from PyQt6.QtCore import Qt, QByteArray
-from PyQt6.QtGui import QAction
+from PyQt6.QtGui import QAction, QActionGroup
+
+from .settings_dialog import SettingsDialog
 
 # --- Global Stylesheet ---
 APP_STYLESHEET = """
@@ -83,24 +89,17 @@ class MainWindow(QMainWindow):
             self.restoreGeometry(QByteArray.fromHex(geometry_hex.encode()))
 
     def _create_settings_toolbar(self):
-        settings_toolbar = QToolBar("Settings")
-        settings_toolbar.setObjectName("settings_toolbar")
-        settings_toolbar.addWidget(QLabel(" Log Level: "))
-        log_level_combo = QComboBox()
-        log_levels = ["DEBUG", "INFO", "WARNING", "ERROR"]
-        log_level_combo.addItems(log_levels)
-        saved_level = self.settings.get("log_level", "INFO").upper()
-        if saved_level in log_levels:
-            log_level_combo.setCurrentText(saved_level)
-            self.log.set_level(saved_level)
-        log_level_combo.currentTextChanged.connect(self._on_log_level_changed)
-        settings_toolbar.addWidget(log_level_combo)
-        self.addToolBar(Qt.ToolBarArea.TopToolBarArea, settings_toolbar)
-
+        self._log_levels = ['DEBUG', 'INFO', 'WARNING', 'ERROR']
+        saved_level = self.settings.get('log_level', 'INFO').upper()
+        if saved_level not in self._log_levels:
+            saved_level = 'INFO'
+        self._current_log_level = saved_level
+        self.log.set_level(saved_level)
     def _on_log_level_changed(self, level_name):
+        level_name = level_name.upper()
         self.log.set_level(level_name)
-        self.settings.set("log_level", level_name)
-
+        self.settings.set('log_level', level_name)
+        self._current_log_level = level_name
     def build_from_contributions(self):
         self.log.info("Shell is building UI from contributions...")
         self._build_central_widget()
@@ -113,27 +112,31 @@ class MainWindow(QMainWindow):
     def _build_central_widget(self):
         contribs = self.framework.get_contributions("ui_central_widget")
         if contribs:
-            widget_class = contribs[0].get('class')
+            widget_class = contribs[0].get("class")
             if widget_class:
                 self.setCentralWidget(widget_class(self.framework))
 
     def _build_docks(self):
         for contrib in self.framework.get_contributions("ui_docks"):
             try:
-                dock_id = contrib['id']
-                content_widget = contrib['class'](self.framework)
-                dock = QDockWidget(contrib.get('title', 'Panel'), self)
+                dock_id = contrib["id"]
+                content_widget = contrib["class"](self.framework)
+                dock = QDockWidget(contrib.get("title", "Panel"), self)
                 dock.setObjectName(dock_id)
 
                 # --- NEW: Check for and set a custom title bar ---
-                if hasattr(content_widget, 'get_title_bar_widget'):
+                if hasattr(content_widget, "get_title_bar_widget"):
                     title_bar = content_widget.get_title_bar_widget()
                     if title_bar:
                         dock.setTitleBarWidget(title_bar)
 
                 dock.setWidget(content_widget)
-                area_str = contrib.get('default_area', 'left')
-                area = getattr(Qt.DockWidgetArea, f"{area_str.title()}DockWidgetArea", Qt.DockWidgetArea.LeftDockWidgetArea)
+                area_str = contrib.get("default_area", "left")
+                area = getattr(
+                    Qt.DockWidgetArea,
+                    f"{area_str.title()}DockWidgetArea",
+                    Qt.DockWidgetArea.LeftDockWidgetArea,
+                )
                 self.addDockWidget(area, dock)
                 self.docks[dock_id] = dock
 
@@ -142,20 +145,50 @@ class MainWindow(QMainWindow):
                     content_widget.restore_state(panel_states[dock_id])
 
             except Exception as e:
-                self.log.error(f"Failed to create dock widget '{contrib.get('id')}': {e}", exc_info=True)
+                self.log.error(
+                    f"Failed to create dock widget '{contrib.get('id')}': {e}",
+                    exc_info=True,
+                )
 
     def _build_menus(self):
         self.menuBar().clear()
         if self.docks:
-            window_menu = self.menuBar().addMenu("Window")
+            window_menu = self.menuBar().addMenu('Window')
             for dock in self.docks.values():
                 window_menu.addAction(dock.toggleViewAction())
 
-        dev_menu = self.menuBar().addMenu("&Developer")
-        reload_action = QAction("Reload Plugins", self)
-        reload_action.setShortcut("Ctrl+R")
-        reload_action.triggered.connect(lambda: self.framework.command_manager.execute("framework.reload_plugins"))
-        dev_menu.addAction(reload_action)
+        settings_menu = self.menuBar().addMenu('&Settings')
+        settings_action = QAction('General...', self)
+        settings_action.triggered.connect(self._open_settings_dialog)
+        settings_menu.addAction(settings_action)
+
+        developer_menu = self.menuBar().addMenu('&Developer')
+        logging_menu = developer_menu.addMenu('Logging')
+        group = QActionGroup(self)
+        group.setExclusive(True)
+        for level in self._log_levels:
+            action = QAction(level, self)
+            action.setCheckable(True)
+            action.setChecked(level == self._current_log_level)
+            action.triggered.connect(
+                lambda checked, lvl=level: checked and self._on_log_level_changed(lvl)
+            )
+            logging_menu.addAction(action)
+            group.addAction(action)
+
+        developer_menu.addSeparator()
+        reload_action = QAction('Reload Plugins', self)
+        reload_action.setShortcut('Ctrl+R')
+        reload_action.triggered.connect(
+            lambda: self.framework.command_manager.execute('framework.reload_plugins')
+        )
+        developer_menu.addAction(reload_action)
+
+    def _open_settings_dialog(self) -> None:
+        if not self.settings:
+            return
+        dialog = SettingsDialog(self.settings, self)
+        dialog.exec()
 
     def clear_all_docks(self):
         for dock in self.docks.values():
@@ -164,7 +197,9 @@ class MainWindow(QMainWindow):
         self.docks.clear()
 
     def closeEvent(self, event):
-        self.settings.set("window_geometry", self.saveGeometry().toHex().data().decode())
+        self.settings.set(
+            "window_geometry", self.saveGeometry().toHex().data().decode()
+        )
         self.settings.set("window_state", self.saveState().toHex().data().decode())
         panel_states = {
             dock_id: dock.widget().save_state()

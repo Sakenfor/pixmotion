@@ -1,0 +1,9 @@
+{
+  "uuid": "43c1ef07-db79-4968-9db1-6408c5f57d07",
+  "name": "Core Services",
+  "type": "plugin",
+  "version": "1.0.0",
+  "tags": ["core"],
+  "entry_point": "plugins.core.plugin:register_plugin",
+  "dependencies": []
+}

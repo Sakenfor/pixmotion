@@ -2,19 +2,35 @@
 import os
 import tempfile
 import uuid
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame,
-                             QTextEdit, QComboBox, QLineEdit, QPushButton, QFormLayout,
-                             QTabWidget, QSplitter, QApplication, QMenu, QStackedWidget, QSizePolicy)
+from PyQt6.QtWidgets import (
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QLabel,
+    QFrame,
+    QTextEdit,
+    QComboBox,
+    QLineEdit,
+    QPushButton,
+    QFormLayout,
+    QTabWidget,
+    QSplitter,
+    QApplication,
+    QMenu,
+    QStackedWidget,
+    QSizePolicy,
+)
 from PyQt6.QtCore import Qt, QMimeData, pyqtSignal, QUrl
 from PyQt6.QtGui import QPixmap, QPainter, QColor, QCursor, QImage
 from PyQt6.QtMultimedia import QMediaPlayer
 from PyQt6.QtMultimediaWidgets import QVideoWidget
 
-from core.models import Asset
+from plugins.core.models import Asset
 
 
 class AspectLockedVideoWidget(QVideoWidget):
     """A QVideoWidget that maintains aspect ratio and properly handles drag-and-drop."""
+
     dropped = pyqtSignal(QMimeData)
 
     def __init__(self, parent=None):
@@ -23,14 +39,14 @@ class AspectLockedVideoWidget(QVideoWidget):
         # We let the layout handle the size policy
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
-    def dragEnterEvent(self, event: 'QDragEnterEvent'):
+    def dragEnterEvent(self, event: "QDragEnterEvent"):
         """Accepts drops that have URLs or text."""
         if event.mimeData().hasUrls() or event.mimeData().hasText():
             event.acceptProposedAction()
         else:
             event.ignore()
 
-    def dropEvent(self, event: 'QDropEvent'):
+    def dropEvent(self, event: "QDropEvent"):
         """Emits a signal with the mime data when an item is dropped."""
         self.dropped.emit(event.mimeData())
 
@@ -54,18 +70,24 @@ class ImageDisplayWidget(QWidget):
     def paintEvent(self, event):
         painter = QPainter(self)
         if self._pixmap and not self._pixmap.isNull():
-            scaled_pixmap = self._pixmap.scaled(self.size(), Qt.AspectRatioMode.KeepAspectRatio,
-                                                Qt.TransformationMode.SmoothTransformation)
+            scaled_pixmap = self._pixmap.scaled(
+                self.size(),
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
+            )
             x = (self.width() - scaled_pixmap.width()) // 2
             y = (self.height() - scaled_pixmap.height()) // 2
             painter.drawPixmap(x, y, scaled_pixmap)
         else:
             painter.setPen(QColor(180, 180, 180))
-            painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, self._placeholder_text)
+            painter.drawText(
+                self.rect(), Qt.AlignmentFlag.AlignCenter, self._placeholder_text
+            )
 
 
 class VideoPlayerWidget(QFrame):
     """A widget that can display a thumbnail or a placeholder."""
+
     asset_dropped = pyqtSignal(str)
 
     def __init__(self, title, framework, parent=None):
@@ -79,6 +101,7 @@ class VideoPlayerWidget(QFrame):
         self.is_video = False
         self._original_pixmap = None  # To store the unscaled pixmap
         self._temp_frame_path = None  # To store path of extracted frame
+        self._media_duration = 0
 
         self._init_ui()
 
@@ -102,18 +125,25 @@ class VideoPlayerWidget(QFrame):
 
         self.media_player = QMediaPlayer()
         self.media_player.setLoops(QMediaPlayer.Loops.Infinite)
+        self.media_player.durationChanged.connect(self._on_duration_changed)
         self.media_player.setVideoOutput(self.video_widget)
         self.media_player.mediaStatusChanged.connect(self._on_media_status_changed)
-        self.video_widget.dropped.connect(self._handle_drop_event)  # Connect to the video widget's drop signal
+        self.video_widget.dropped.connect(
+            self._handle_drop_event
+        )  # Connect to the video widget's drop signal
 
         self.media_stack.addWidget(self.image_display)
-        self.media_stack.addWidget(video_container)  # Add the container, not the widget directly
+        self.media_stack.addWidget(
+            video_container
+        )  # Add the container, not the widget directly
         main_layout.addWidget(self.media_stack)
 
         # Clear button overlay
         self.clear_btn = QPushButton("X", self)
         self.clear_btn.setFixedSize(20, 20)
-        self.clear_btn.setStyleSheet("background-color: rgba(44, 44, 44, 180); border-radius: 10px; font-weight: bold;")
+        self.clear_btn.setStyleSheet(
+            "background-color: rgba(44, 44, 44, 180); border-radius: 10px; font-weight: bold;"
+        )
         self.clear_btn.clicked.connect(self.clear_asset)
         self.clear_btn.hide()
 
@@ -121,10 +151,19 @@ class VideoPlayerWidget(QFrame):
         self.controls_widget = QWidget()
         controls_layout = QHBoxLayout(self.controls_widget)
         controls_layout.setContentsMargins(0, 0, 0, 0)
-        self.play_pause_btn = QPushButton("▶ Play")
-        self.play_pause_btn.clicked.connect(self._toggle_playback)
+
         controls_layout.addStretch()
+        self.first_frame_btn = QPushButton('⏮ First')
+        self.first_frame_btn.clicked.connect(self._jump_to_start)
+        controls_layout.addWidget(self.first_frame_btn)
+
+        self.play_pause_btn = QPushButton('▶ Play')
+        self.play_pause_btn.clicked.connect(self._toggle_playback)
         controls_layout.addWidget(self.play_pause_btn)
+
+        self.last_frame_btn = QPushButton('Last ⏭')
+        self.last_frame_btn.clicked.connect(self._jump_to_end)
+        controls_layout.addWidget(self.last_frame_btn)
         controls_layout.addStretch()
         main_layout.addWidget(self.controls_widget)
         self.controls_widget.hide()  # Hide by default
@@ -144,14 +183,19 @@ class VideoPlayerWidget(QFrame):
             return
 
         _, ext = os.path.splitext(asset_path.lower())
-        self.is_video = ext in ['.mp4', '.mov', '.avi']
+        self.is_video = ext in [".mp4", ".mov", ".avi"]
 
         if self.is_video:
             self._original_pixmap = None  # Clear pixmap if it's a video
             self.media_player.setSource(QUrl.fromLocalFile(asset_path))
+            self.media_player.setPosition(0)
             self.media_stack.setCurrentIndex(1)  # Show video container
             self.controls_widget.show()
-            self.play_pause_btn.setText("▶ Play")
+            self.first_frame_btn.setEnabled(True)
+            self.first_frame_btn.show()
+            self.last_frame_btn.setEnabled(True)
+            self.last_frame_btn.show()
+            self.play_pause_btn.setText('▶ Play')
             self.clear_btn.show()
         else:  # It's an image
             pixmap_path = self._get_thumbnail_path(asset_path)
@@ -159,14 +203,17 @@ class VideoPlayerWidget(QFrame):
                 pixmap_path = asset_path
 
             if pixmap_path and os.path.exists(pixmap_path):
-                # Store the original, unscaled pixmap
-                self._original_pixmap = QPixmap(pixmap_path)  # This is the source of truth
+                self._original_pixmap = QPixmap(pixmap_path)
                 self.image_display.set_pixmap(self._original_pixmap)
             else:
                 self._original_pixmap = None
+                self.image_display.set_pixmap(None)
             self.media_stack.setCurrentIndex(0)  # Show image display
             self.controls_widget.hide()
+            self.first_frame_btn.setEnabled(False)
+            self.last_frame_btn.setEnabled(False)
             self.media_player.setSource(QUrl())
+            self.play_pause_btn.setText('▶ Play')
             self.clear_btn.show()
 
     def resizeEvent(self, event):
@@ -190,6 +237,9 @@ class VideoPlayerWidget(QFrame):
         self.is_video = False
         self._original_pixmap = None
         self.media_player.setSource(QUrl())
+        self.play_pause_btn.setText('▶ Play')
+        self.first_frame_btn.setEnabled(False)
+        self.last_frame_btn.setEnabled(False)
         self.image_display.set_placeholder_text(f"{self.title}\n\nDrop Asset Here")
         self.image_display.set_pixmap(None)
         self.media_stack.setCurrentIndex(0)  # Show image display
@@ -197,7 +247,9 @@ class VideoPlayerWidget(QFrame):
         self.controls_widget.hide()
 
     def dragEnterEvent(self, event):
-        self.log.info(f"[VideoPlayerWidget.dragEnterEvent] MimeData formats: {event.mimeData().formats()}")
+        self.log.info(
+            f"[VideoPlayerWidget.dragEnterEvent] MimeData formats: {event.mimeData().formats()}"
+        )
         if event.mimeData().hasUrls() or event.mimeData().hasText():
             event.acceptProposedAction()
 
@@ -211,7 +263,9 @@ class VideoPlayerWidget(QFrame):
         path = None
         if mime_data.hasUrls():
             url = mime_data.urls()[0]
-            self.log.info(f"[VideoPlayerWidget.dropEvent] Dropped URL: {url.toString()}")
+            self.log.info(
+                f"[VideoPlayerWidget.dropEvent] Dropped URL: {url.toString()}"
+            )
             if url.isLocalFile():
                 path = url.toLocalFile()
         elif mime_data.hasText():
@@ -219,10 +273,14 @@ class VideoPlayerWidget(QFrame):
             self.log.info(f"[VideoPlayerWidget.dropEvent] Dropped Text: {path}")
 
         if path and os.path.exists(path):
-            self.log.info(f"[VideoPlayerWidget.dropEvent] Emitting asset_dropped with path: {path}")
+            self.log.info(
+                f"[VideoPlayerWidget.dropEvent] Emitting asset_dropped with path: {path}"
+            )
             self.asset_dropped.emit(path)
         else:
-            self.log.warning(f"[VideoPlayerWidget.dropEvent] Path not valid or does not exist: {path}")
+            self.log.warning(
+                f"[VideoPlayerWidget.dropEvent] Path not valid or does not exist: {path}"
+            )
 
     def contextMenuEvent(self, event):
         self._show_context_menu()
@@ -244,7 +302,7 @@ class VideoPlayerWidget(QFrame):
         # Execute the command and get the new asset object back
         new_asset = command_manager.execute("assets.paste_from_clipboard")
 
-        if new_asset and hasattr(new_asset, 'path'):
+        if new_asset and hasattr(new_asset, "path"):
             # The command was successful, update the widget with the new asset's path
             self.log.info(f"Pasted asset created: {new_asset.path}")
             self.asset_dropped.emit(new_asset.path)
@@ -264,6 +322,24 @@ class VideoPlayerWidget(QFrame):
             # This is now handled by setLoops(Infinite), but we keep it for safety
             self.play_pause_btn.setText("▶ Play")
             self.media_player.setPosition(0)
+
+    def _on_duration_changed(self, duration: int) -> None:
+        self._media_duration = max(0, duration)
+
+    def _jump_to_start(self) -> None:
+        if not self.is_video:
+            return
+        self.media_player.pause()
+        self.media_player.setPosition(0)
+        self.play_pause_btn.setText('▶ Play')
+
+    def _jump_to_end(self) -> None:
+        if not self.is_video:
+            return
+        target = max(0, self._media_duration - 200)
+        self.media_player.pause()
+        self.media_player.setPosition(target)
+        self.play_pause_btn.setText('▶ Play')
 
     def get_frame_for_generation(self) -> str | None:
         """
@@ -292,7 +368,9 @@ class VideoPlayerWidget(QFrame):
             self.log.error("Failed to convert video frame to image.")
             return None
 
-        self._temp_frame_path = os.path.join(tempfile.gettempdir(), f"pixmotion_frame_{uuid.uuid4().hex}.png")
+        self._temp_frame_path = os.path.join(
+            tempfile.gettempdir(), f"pixmotion_frame_{uuid.uuid4().hex}.png"
+        )
         image.save(self._temp_frame_path, "PNG")
         self.log.info(f"Extracted video frame for generation: {self._temp_frame_path}")
         return self._temp_frame_path
@@ -319,6 +397,7 @@ class PromptTextEdit(QTextEdit):
 
 
 class GeneratorPanel(QWidget):
+    menu_title = "Generator"
     """A consolidated, well-organized panel for all generation controls."""
 
     def __init__(self, framework):
@@ -378,9 +457,13 @@ class GeneratorPanel(QWidget):
         advanced_layout = QFormLayout(advanced_widget)
         advanced_layout.setSpacing(5)
         self.camera_combo = QComboBox()
-        self.camera_combo.addItems(["None", "zoom_in", "zoom_out", "pan_left", "pan_right"])
+        self.camera_combo.addItems(
+            ["None", "zoom_in", "zoom_out", "pan_left", "pan_right"]
+        )
         self.style_combo = QComboBox()
-        self.style_combo.addItems(["None", "anime", "3d_animation", "cyberpunk", "comic"])
+        self.style_combo.addItems(
+            ["None", "anime", "3d_animation", "cyberpunk", "comic"]
+        )
         self.motion_combo = QComboBox()
         self.motion_combo.addItems(["normal", "fast"])
         self.seed_edit = QLineEdit()
@@ -432,16 +515,28 @@ class GeneratorPanel(QWidget):
         state = {
             "title": self.title_edit.text(),
             "prompt": self.prompt_edit.toPlainText(),
-            "input_asset1_id": self._ensure_asset_and_get_id(self.input1.get_frame_for_generation()),
-            "input_asset2_id": self._ensure_asset_and_get_id(self.input2.get_frame_for_generation()),
+            "input_asset1_id": self._ensure_asset_and_get_id(
+                self.input1.get_frame_for_generation()
+            ),
+            "input_asset2_id": self._ensure_asset_and_get_id(
+                self.input2.get_frame_for_generation()
+            ),
             "model": self.model_combo.currentText(),
             "quality": self.quality_combo.currentText(),
             "duration": int(self.duration_combo.currentText()),
-            "camera_movement": self.camera_combo.currentText() if self.camera_combo.currentIndex() > 0 else "None",
-            "style": self.style_combo.currentText() if self.style_combo.currentIndex() > 0 else "None",
+            "camera_movement": (
+                self.camera_combo.currentText()
+                if self.camera_combo.currentIndex() > 0
+                else "None"
+            ),
+            "style": (
+                self.style_combo.currentText()
+                if self.style_combo.currentIndex() > 0
+                else "None"
+            ),
             "motion_mode": self.motion_combo.currentText(),
             "seed": self.seed_edit.text() or None,
-            "negative_prompt": self.negative_prompt_edit.text() or None
+            "negative_prompt": self.negative_prompt_edit.text() or None,
         }
         return state
 
@@ -461,9 +556,13 @@ class GeneratorPanel(QWidget):
 
         # Restore assets by finding their paths from the saved IDs
         if state.get("input_asset1_id"):
-            self.input1.set_asset(self._get_path_from_asset_id(state["input_asset1_id"]))
+            self.input1.set_asset(
+                self._get_path_from_asset_id(state["input_asset1_id"])
+            )
         if state.get("input_asset2_id"):
-            self.input2.set_asset(self._get_path_from_asset_id(state["input_asset2_id"]))
+            self.input2.set_asset(
+                self._get_path_from_asset_id(state["input_asset2_id"])
+            )
 
     def _on_use_template(self, **kwargs):
         """Sets the generator panel's state from a template."""
@@ -480,25 +579,32 @@ class GeneratorPanel(QWidget):
         settings["input_asset2_id"] = None  # Ensure input 2 is ignored
 
         if not settings["prompt"] or not settings["input_asset1_id"]:
-            self.log.notification("Prompt and Input 1 are required for basic generation.")
+            self.log.notification(
+                "Prompt and Input 1 are required for basic generation."
+            )
             return
 
         self.framework.get_service("command_manager").execute(
             "story.generate_video",
-            **settings  # Unpack the dictionary as keyword arguments
+            **settings,  # Unpack the dictionary as keyword arguments
         )
 
     def _on_transition_generate(self):
         """Triggers a generation using both Input 1 and Input 2."""
         settings = self.save_state()
 
-        if not settings["prompt"] or not settings["input_asset1_id"] or not settings["input_asset2_id"]:
-            self.log.notification("Prompt, Input 1, and Input 2 are required for transitions.")
+        if (
+            not settings["prompt"]
+            or not settings["input_asset1_id"]
+            or not settings["input_asset2_id"]
+        ):
+            self.log.notification(
+                "Prompt, Input 1, and Input 2 are required for transitions."
+            )
             return
 
         self.framework.get_service("command_manager").execute(
-            "story.generate_video",
-            **settings
+            "story.generate_video", **settings
         )
 
     def _ensure_asset_and_get_id(self, path: str) -> str | None:
@@ -506,7 +612,8 @@ class GeneratorPanel(QWidget):
         Ensures an asset exists in the database for the given path and returns its ID.
         If the asset doesn't exist, it's created.
         """
-        if not path: return None
+        if not path:
+            return None
         if not self.asset_service:
             self.log.error("AssetService not available. Cannot ensure asset exists.")
             return None
@@ -516,7 +623,9 @@ class GeneratorPanel(QWidget):
 
     def _get_path_from_asset_id(self, asset_id: str) -> str | None:
         """Finds the file path for a given asset ID."""
-        if not asset_id: return None
-        if not self.asset_service: return None
+        if not asset_id:
+            return None
+        if not self.asset_service:
+            return None
         # Use the service to get the path, which is more robust.
         return self.asset_service.get_asset_path(asset_id)
