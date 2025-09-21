@@ -7,10 +7,10 @@ from typing import TYPE_CHECKING, Dict, Iterable, List, Optional, Sequence, Tupl
 
 from framework.manifests import EmotionIntentConfig, EmotionPackageManifest
 
-from .emotion_repository import EmotionClipRepository
+from ..repositories import EmotionClipRepository
 
 if TYPE_CHECKING:
-    from .services import AssetService  # pragma: no cover
+    from .asset_service import AssetService  # pragma: no cover
     from framework.asset_manager import AssetManager  # pragma: no cover
 
 

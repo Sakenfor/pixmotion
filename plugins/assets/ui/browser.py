@@ -32,7 +32,7 @@ from .views import AssetModel, AssetDelegate
 from .widgets import AssetHoverManager, StarRatingFilter
 from .windows import MediaPreviewWindow
 from framework.manifests import EmotionPackageManifest
-from .package_editor import PackageEditorWidget
+from ..package_editor import PackageEditorWidget
 
 
 class CreatePackageDialog(QDialog):

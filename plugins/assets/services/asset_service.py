@@ -4,7 +4,7 @@ import hashlib
 from PIL import Image, ImageOps
 import cv2
 
-from .models import Asset, AssetType
+from ..models import Asset, AssetType
 
 
 class AssetService:

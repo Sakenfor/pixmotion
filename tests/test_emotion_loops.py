@@ -9,8 +9,11 @@ import cv2
 import numpy as np
 
 from framework.manifests import EmotionIntentConfig, EmotionPackageManifest
-from plugins.assets.emotion_service import EmotionClipAnalyzer, EmotionAnalyzerConfig
-from plugins.assets.emotion_selector import EmotionLoopSelector
+from plugins.assets.services import (
+    EmotionAnalyzerConfig,
+    EmotionClipAnalyzer,
+    EmotionLoopSelector,
+)
 
 
 class _StubLog:
