@@ -24,4 +24,7 @@ class AIQuickGenerator(BaseLayerGenerator):
         # Fallback minimal tagging
         if not tags:
             tags.add("unknown")
-        self.tag_index.add_tags(asset_id, "ai_quick", tags)
+        dest_layer_id = None
+        if isinstance(self.layer, dict):
+            dest_layer_id = self.layer.get("id")
+        self.tag_index.add_tags(asset_id, dest_layer_id or "ai_quick", tags)
