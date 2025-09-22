@@ -27,3 +27,14 @@ creates the target directory (or its parent when resolving files).
 * When referencing files bundled with the application (for example, packaged
   models), keep using explicit paths; `resolve_user_path` is intended for
   user-generated content and caches.
+
+## Scan profile defaults
+
+`ScanProfileService` seeds a `scan_profiles.json` file in the user data root.
+Installations created before this release may still reference the legacy
+`person_detected` tag in the `deep_pass` filter, which the quick pass never
+produced. On startup the service now replaces the file when it matches the old
+defaults so the `deep_pass` profile filters for the actual `portrait`/`animal`
+tags. If you customised the profile definitions, remove the obsolete
+`person_detected` entry manually (or delete the file to let the defaults be
+recreated) to pick up the new behaviour.
