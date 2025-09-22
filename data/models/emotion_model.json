@@ -1,0 +1,36 @@
+{
+  "name": "curated_emotion_classifier",
+  "version": "1.0",
+  "features": ["brightness", "warmth", "contrast"],
+  "labels": [
+    {
+      "id": "joyful",
+      "tag": "emotion:joyful",
+      "extras": ["subject:person", "palette:warm"]
+    },
+    {
+      "id": "melancholy",
+      "tag": "emotion:melancholy",
+      "extras": ["subject:person", "palette:cool"]
+    },
+    {
+      "id": "neutral",
+      "tag": "emotion:neutral",
+      "extras": ["subject:person", "palette:balanced"]
+    }
+  ],
+  "weights": {
+    "joyful": {
+      "bias": -0.25,
+      "weights": [3.0, 1.8, 0.5]
+    },
+    "melancholy": {
+      "bias": 0.35,
+      "weights": [-2.6, -2.1, -0.6]
+    },
+    "neutral": {
+      "bias": 0.05,
+      "weights": [0.1, -0.05, -0.1]
+    }
+  }
+}
