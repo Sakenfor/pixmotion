@@ -217,8 +217,8 @@ class PixverseService:
 
     def _get_output_path(self, video_id, title=None):
         settings = self._get_required_service("settings_service")
-        output_dir = settings.get("output_directory", "generated_media")
-        os.makedirs(output_dir, exist_ok=True)
+        output_dir_setting = settings.get("output_directory", "generated_media")
+        output_dir = settings.resolve_user_path(output_dir_setting)
 
         if title and title.strip():
             base_name = (

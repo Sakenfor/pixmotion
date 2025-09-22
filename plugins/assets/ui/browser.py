@@ -434,9 +434,18 @@ class AssetBrowserPanel(QWidget):
         self.current_folder = folder_path
         self.asset_model.clear()
         if folder_path:
+            actual_folder = folder_path
+            if folder_path == "__clipboard__":
+                actual_folder = self.settings.resolve_user_path(
+                    "clipboard", ensure_exists=False
+                )
+            elif not os.path.isabs(folder_path):
+                actual_folder = self.settings.resolve_user_path(
+                    folder_path, ensure_exists=False
+                )
             worker = self.framework.get_service("worker_manager")
             worker.submit(self.db.query, on_result=self._on_assets_loaded_worker,
-                          model=Asset, filter_func=lambda a: a.path.startswith(folder_path))
+                          model=Asset, filter_func=lambda a: a.path.startswith(actual_folder))
 
     def _on_assets_loaded_worker(self, assets):
         """Callback for when assets are loaded. Emits a signal to update UI on main thread."""

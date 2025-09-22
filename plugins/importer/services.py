@@ -12,6 +12,7 @@ class WebImporterService:
         self.framework = framework
         self.log = framework.get_service("log_manager")
         self.project_root = framework.get_project_root()
+        self.settings = framework.get_service("settings_service")
 
     def import_from_url(self, url: str) -> str | None:
         """
@@ -43,8 +44,11 @@ class WebImporterService:
             image_response = requests.get(image_url, timeout=30, stream=True)
             image_response.raise_for_status()
 
-            pinterest_dir = os.path.join(self.project_root, "assets", "pinterest")
-            os.makedirs(pinterest_dir, exist_ok=True)
+            if self.settings:
+                pinterest_dir = self.settings.resolve_user_path("imports", "pinterest")
+            else:
+                pinterest_dir = os.path.join(self.project_root, "assets", "pinterest")
+                os.makedirs(pinterest_dir, exist_ok=True)
             filename = f"pinterest_{uuid.uuid4().hex[:12]}.jpg"
             filepath = os.path.join(pinterest_dir, filename)
 

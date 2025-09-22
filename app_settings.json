@@ -1,6 +1,7 @@
 {
     "pixverse_api_key": "sk-435407d6b619f631a43a5019e63c340c",
-    "output_directory": "data/generated_media",
+    "user_data_root": "data",
+    "output_directory": "generated_media",
     "database_filename": "pixmotion.db",
     "library_folders": [
         "A:/pixverse_ai/good images/mindy vega",
@@ -36,7 +37,7 @@
     "log_level": "ERROR",
     "emotion_analyzer": {
         "face_cascade_path": "",
-        "emotion_model_path": "data/ai_models/motion-ferplus-8.onnx",
+        "emotion_model_path": "ai_models/motion-ferplus-8.onnx",
         "emotion_labels": [
             "neutral",
             "happy",

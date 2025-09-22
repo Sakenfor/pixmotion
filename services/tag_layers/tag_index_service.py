@@ -5,14 +5,20 @@ from typing import Dict, List, Iterable, Optional
 
 class TagIndexService:
     """Stores per-asset tags by layer without requiring a DB migration.
-    Persists to data/tag_index.json; structure:
+    Persists to ``user_data_root``/``tag_index.json``; structure:
     { asset_id: { layer_id: {"tags": [...], "meta": {...}} } }
     """
     def __init__(self, framework):
         self.framework = framework
         self.log = framework.log_manager
-        self._index_path = os.path.join(framework.get_project_root(), "data", "tag_index.json")
-        os.makedirs(os.path.dirname(self._index_path), exist_ok=True)
+        self.settings = framework.get_service("settings_service")
+        if self.settings:
+            self._index_path = self.settings.resolve_user_path("tag_index.json")
+        else:
+            self._index_path = os.path.join(
+                framework.get_project_root(), "data", "tag_index.json"
+            )
+            os.makedirs(os.path.dirname(self._index_path), exist_ok=True)
         self._index: Dict[str, Dict[str, Dict]] = self._load()
 
     def _load(self) -> Dict[str, Dict[str, Dict]]:

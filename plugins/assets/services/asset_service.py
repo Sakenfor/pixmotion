@@ -38,9 +38,7 @@ class AssetService:
         return self.repository.get_path_by_id(asset_id)
 
     def clear_clipboard_assets(self):
-        clipboard_dir = os.path.join(
-            self.framework.get_project_root(), "assets", "clipboard"
-        )
+        clipboard_dir = self.settings.resolve_user_path("clipboard", ensure_exists=False)
         if not os.path.isdir(clipboard_dir):
             self.log.info("Clipboard folder does not exist; nothing to clear.")
             return
@@ -92,7 +90,8 @@ class AssetService:
 
     def _initial_scan(self, **kwargs):
         self.log.info("Performing initial asset scan...")
-        output_dir = self.settings.get("output_directory", "generated_media")
+        output_dir_setting = self.settings.get("output_directory", "generated_media")
+        output_dir = self.settings.resolve_user_path(output_dir_setting)
         self.scan_folder(output_dir)
         for folder in self.settings.get("library_folders", []):
             self.scan_folder(folder)
@@ -130,13 +129,17 @@ class AssetService:
         return created_asset
 
     def scan_folder(self, folder_path):
-        abs_folder_path = os.path.join(self.framework.get_project_root(), folder_path)
+        abs_folder_path = folder_path
+        if not os.path.isabs(abs_folder_path):
+            abs_folder_path = self.settings.resolve_user_path(
+                folder_path, ensure_exists=False
+            )
         if not os.path.isdir(abs_folder_path):
             self.log.warning(f"Asset folder not found: {abs_folder_path}")
             return
 
         def scan_task():
-            self.log.info(f"Scanning folder: {folder_path}...")
+            self.log.info(f"Scanning folder: {abs_folder_path}...")
             existing_paths = self.repository.get_existing_paths_in_folder(
                 abs_folder_path
             )
@@ -166,10 +169,7 @@ class AssetService:
             return None
 
     def _create_thumbnail(self, path, file_hash):
-        thumb_dir = os.path.join(
-            self.framework.get_project_root(), "data", "thumbnails"
-        )
-        os.makedirs(thumb_dir, exist_ok=True)
+        thumb_dir = self.settings.resolve_user_path("thumbnails")
         thumb_path = os.path.join(thumb_dir, f"{file_hash}.jpg")
 
         if os.path.exists(thumb_path):

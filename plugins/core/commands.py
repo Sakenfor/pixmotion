@@ -47,10 +47,7 @@ class PasteFromClipboardCommand(ICommand):
                 return None
             try:
                 # --- FIX: Use the project root to build a reliable path ---
-                output_dir = os.path.join(
-                    self.framework.get_project_root(), "assets", "clipboard"
-                )
-                os.makedirs(output_dir, exist_ok=True)
+                output_dir = self.settings.resolve_user_path("clipboard")
                 filename = f"paste_{uuid.uuid4().hex[:8]}.png"
                 filepath = os.path.join(output_dir, filename)
                 q_image.save(filepath, "PNG")
