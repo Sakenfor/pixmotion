@@ -20,8 +20,8 @@
     "filter": {
       "include_layers_any": {
         "ai_quick": [
-          "person_detected",
-          "portrait"
+          "portrait",
+          "animal"
         ]
       }
     }

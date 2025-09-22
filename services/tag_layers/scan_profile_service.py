@@ -4,6 +4,24 @@ import json, os
 from typing import Dict, Iterable, Optional
 from importlib import import_module
 
+
+DEFAULT_PROFILES: Dict[str, Dict] = {
+    "quick_pass": {
+        "label": "Quick Sort Pass",
+        "layers": ["basic", "ai_quick"],
+        "filter": {"asset_type": ["image", "video"]},
+    },
+    "deep_pass": {
+        "label": "Deep AI Pass",
+        "layers": ["ai_deep"],
+        "filter": {"include_layers_any": {"ai_quick": ["portrait", "animal"]}},
+    },
+}
+
+
+LEGACY_QUICK_TAGS = {"person_detected", "portrait"}
+
+
 def _resolve_callable(path: str):
     module, sep, attr = path.partition(":")
     if not sep:
@@ -27,25 +45,32 @@ class ScanProfileService:
                 framework.get_project_root(), "data", "scan_profiles.json"
             )
             os.makedirs(os.path.dirname(self._profiles_path), exist_ok=True)
+        self._ensure_profiles_file()
+
+    def _ensure_profiles_file(self) -> None:
         if not os.path.exists(self._profiles_path):
+            self._write_default_profiles(); return
+        try:
+            with open(self._profiles_path, "r", encoding="utf-8") as f:
+                current = json.load(f)
+        except Exception:
+            self._write_default_profiles(); return
+        deep_filter = (
+            (current.get("deep_pass") or {})
+            .get("filter", {})
+            .get("include_layers_any", {})
+            .get("ai_quick", [])
+        )
+        tags = {t.lower() for t in deep_filter if t}
+        if tags == {t.lower() for t in LEGACY_QUICK_TAGS}:
+            if self.log:
+                self.log.info("Updating scan_profiles.json to latest defaults")
             self._write_default_profiles()
 
     def _write_default_profiles(self):
-        payload = {
-            "quick_pass": {
-                "label": "Quick Sort Pass",
-                "layers": ["basic", "ai_quick"],
-                "filter": {"asset_type": ["image", "video"]}
-            },
-            "deep_pass": {
-                "label": "Deep AI Pass",
-                "layers": ["ai_deep"],
-                "filter": {"include_layers_any": {"ai_quick": ["person_detected","portrait"]}}
-            }
-        }
         os.makedirs(os.path.dirname(self._profiles_path), exist_ok=True)
         with open(self._profiles_path, "w", encoding="utf-8") as f:
-            json.dump(payload, f, indent=2)
+            json.dump(DEFAULT_PROFILES, f, indent=2)
 
     def list_profiles(self) -> Dict[str, Dict]:
         try:
