@@ -502,7 +502,17 @@ class EmotionPackageService:
             value = settings.get("emotion_analyzer", None)
             if isinstance(value, dict):
                 config_data = value
-        return EmotionAnalyzerConfig.from_dict(config_data)
+        config = EmotionAnalyzerConfig.from_dict(config_data)
+        if settings:
+            if config.face_cascade_path and not os.path.isabs(config.face_cascade_path):
+                config.face_cascade_path = settings.resolve_user_path(
+                    config.face_cascade_path, ensure_exists=False
+                )
+            if config.emotion_model_path and not os.path.isabs(config.emotion_model_path):
+                config.emotion_model_path = settings.resolve_user_path(
+                    config.emotion_model_path, ensure_exists=False
+                )
+        return config
     def _iter_media_files(self, base_path: Path) -> Iterable[str]:
         if base_path.is_file():
             if base_path.suffix.lower() in VIDEO_EXTENSIONS:

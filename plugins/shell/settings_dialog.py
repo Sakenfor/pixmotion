@@ -89,7 +89,7 @@ class SettingsDialog(QDialog):
 
         self._settings.set("pixverse_api_key", api_key)
         if output_dir:
-            os.makedirs(output_dir, exist_ok=True)
+            self._settings.resolve_user_path(output_dir)
             self._settings.set("output_directory", output_dir)
         else:
             self._settings.set("output_directory", "")

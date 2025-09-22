@@ -19,7 +19,14 @@ class ScanProfileService:
         self.registry = framework.get_service("tag_layer_registry")
         self.tag_index = framework.get_service("tag_index_service")
         self.asset_repo = framework.get_service("asset_repository")  # optional
-        self._profiles_path = os.path.join(framework.get_project_root(), "data", "scan_profiles.json")
+        self.settings = framework.get_service("settings_service")
+        if self.settings:
+            self._profiles_path = self.settings.resolve_user_path("scan_profiles.json")
+        else:
+            self._profiles_path = os.path.join(
+                framework.get_project_root(), "data", "scan_profiles.json"
+            )
+            os.makedirs(os.path.dirname(self._profiles_path), exist_ok=True)
         if not os.path.exists(self._profiles_path):
             self._write_default_profiles()
 

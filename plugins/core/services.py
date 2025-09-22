@@ -1,8 +1,11 @@
 # D:/My Drive/code/pixmotion/plugins/core/services.py
 import os
 import json
+from pathlib import Path
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+
 from .models import Base
 
 
@@ -12,10 +15,14 @@ class SettingsService:
     def __init__(self, framework):
         self.framework = framework
         self.log = framework.get_service("log_manager")
+        self._project_root = Path(framework.get_project_root())
         self.settings_path = os.path.join(
             framework.get_project_root(), "app_settings.json"
         )
         self.settings = self._load_settings()
+        if "user_data_root" not in self.settings:
+            self.settings["user_data_root"] = "data"
+        self._user_data_root_path = self._compute_user_data_root_path()
 
     def _load_settings(self):
         try:
@@ -30,7 +37,54 @@ class SettingsService:
 
     def set(self, key, value):
         self.settings[key] = value
+        if key == "user_data_root":
+            self._user_data_root_path = self._compute_user_data_root_path(value)
         self._save_settings()
+
+    def resolve_user_path(self, *parts: str, ensure_exists: bool = True) -> str:
+        """Resolve a path relative to the configured user data root."""
+
+        cleaned_parts: list[str] = []
+        for part in parts:
+            if part is None:
+                continue
+            text = str(part).strip()
+            if not text:
+                continue
+            cleaned_parts.append(text.replace("\\", os.sep))
+
+        path: Path | None = None
+        for raw in cleaned_parts:
+            candidate = Path(raw).expanduser()
+            if candidate.is_absolute():
+                path = candidate
+            else:
+                if path is None:
+                    path = self._user_data_root_path / candidate
+                else:
+                    path = path / candidate
+
+        if path is None:
+            path = self._user_data_root_path
+
+        path = Path(os.path.normpath(str(path)))
+
+        if ensure_exists:
+            last_name = Path(cleaned_parts[-1]).name if cleaned_parts else ""
+            is_probably_file = bool(last_name) and "." in last_name and not last_name.startswith(".")
+            target_dir = path.parent if is_probably_file else path
+            target_dir.mkdir(parents=True, exist_ok=True)
+
+        return str(path)
+
+    def _compute_user_data_root_path(self, value: str | None = None) -> Path:
+        root_value = str(value if value is not None else self.settings.get("user_data_root", "data") or "data")
+        candidate = Path(root_value.replace("\\", os.sep)).expanduser()
+        if not candidate.is_absolute():
+            candidate = self._project_root / candidate
+        candidate = Path(os.path.normpath(str(candidate)))
+        candidate.mkdir(parents=True, exist_ok=True)
+        return candidate
 
     def _save_settings(self):
         try:
@@ -48,12 +102,12 @@ class DatabaseService:
         self.log = framework.get_service("log_manager")
         settings = framework.get_service("settings_service")
 
-        project_root = self.framework.get_project_root()
-        data_dir = os.path.join(project_root, "data")
-        os.makedirs(data_dir, exist_ok=True)
-
         db_filename = settings.get("database_filename", "pixmotion.db")
-        db_path = os.path.join(data_dir, db_filename)
+        if os.path.isabs(db_filename):
+            db_path = db_filename
+            os.makedirs(os.path.dirname(db_path) or os.curdir, exist_ok=True)
+        else:
+            db_path = settings.resolve_user_path(db_filename)
         db_uri = f"sqlite:///{db_path}"
         self.log.info(f"Database URI set to: {db_uri}")
 

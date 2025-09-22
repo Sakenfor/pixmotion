@@ -16,6 +16,7 @@ class GraphService:
         self.store = framework.graph_store
         self.registry = framework.graph_registry
         self._data_directory: Optional[Path] = None
+        self._settings_service = None
 
     # --- Data directory -------------------------------------------------
 
@@ -25,10 +26,26 @@ class GraphService:
     def get_data_directory(self) -> Path:
         if self._data_directory is not None:
             return self._data_directory
+
+        settings = self._get_settings_service()
+        if settings:
+            directory = Path(settings.resolve_user_path("graphs"))
+            self._data_directory = directory
+            return directory
+
         project_root = getattr(self.framework, "project_root", None)
         if project_root:
-            return Path(project_root) / "graphs"
+            directory = Path(project_root) / "graphs"
+            directory.mkdir(parents=True, exist_ok=True)
+            return directory
         return Path("graphs")
+
+    def _get_settings_service(self):
+        if self._settings_service is None:
+            getter = getattr(self.framework, "get_service", None)
+            if callable(getter):
+                self._settings_service = getter("settings_service")
+        return self._settings_service
 
     # --- Persistence ----------------------------------------------------
 
