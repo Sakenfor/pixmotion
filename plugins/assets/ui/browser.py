@@ -77,7 +77,7 @@ class AssetBrowserPanel(QWidget):
         layout.addWidget(self._header_bar)
 
         # Create filter widgets
-        self._create_filter_widgets()
+        self.filter_bar = self._create_filter_widgets()
 
         splitter = ModernSplitter(Qt.Orientation.Horizontal)
 
@@ -126,7 +126,7 @@ class AssetBrowserPanel(QWidget):
         splitter.addWidget(left_pane)
         splitter.addWidget(self.right_pane_stack)
         splitter.setSizes([250, 550])
-        layout.addWidget(self._header_bar)
+        layout.addWidget(self.filter_bar)
         layout.addWidget(splitter, 1)
 
     def _create_modern_header(self):
@@ -235,6 +235,25 @@ class AssetBrowserPanel(QWidget):
         if hasattr(self, '_header_bar'):
             apply_modern_style(self._header_bar, self.theme_manager, "header")
 
+        if hasattr(self, 'filter_bar'):
+            colors = self.theme_manager.get_current_theme()
+            filter_style = f"""
+                QWidget#FilterBar {{
+                    background: {colors.bg_secondary};
+                    border: 1px solid {colors.border_light};
+                    border-radius: 12px;
+                }}
+                QLabel#FilterLabel {{
+                    color: {colors.text_secondary};
+                    font-weight: 600;
+                }}
+                QLabel#ActiveFiltersLabel {{
+                    color: {colors.text_secondary};
+                    font-size: 12px;
+                }}
+            """
+            self.filter_bar.setStyleSheet(filter_style)
+
         # Apply modern sidebar styling to folder tree
         if hasattr(self, 'folder_tree'):
             apply_modern_style(self.folder_tree, self.theme_manager, "sidebar")
@@ -242,6 +261,10 @@ class AssetBrowserPanel(QWidget):
         # Apply modern list styling to asset view
         if hasattr(self, 'asset_view'):
             apply_modern_style(self.asset_view, self.theme_manager, "modern_list")
+
+        if hasattr(self, 'star_filter'):
+            colors = self.theme_manager.get_current_theme()
+            self.star_filter.set_colors(colors.accent_warning, colors.border_dark)
 
         # Apply modern button styling to toolbar buttons
         for btn_name in ['add_folder_btn', 'clear_clipboard_btn', 'ai_tag_btn', 'ai_filter_btn', 'filter_btn']:
@@ -269,6 +292,8 @@ class AssetBrowserPanel(QWidget):
                 """
                 btn.setStyleSheet(combined_style)
 
+        self._style_filter_buttons()
+
         # Apply list view styling
         if hasattr(self, 'asset_view'):
             list_style = self.theme_manager.get_stylesheet("list")
@@ -286,43 +311,150 @@ class AssetBrowserPanel(QWidget):
     def _create_filter_widgets(self):
         """Create filter control widgets"""
         self.star_filter = StarRatingFilter()
+        self.star_filter.setObjectName("StarFilter")
+        self.star_filter.setToolTip("Filter assets by minimum rating")
+
         self.type_filter_group = QButtonGroup(self)
         self.type_filter_group.setExclusive(True)
 
-        # Style the filter buttons
-        button_style = """
-            QToolButton {
-                background: #ffffff;
-                border: 1px solid #ced4da;
-                border-radius: 4px;
-                padding: 4px 8px;
-                font-size: 12px;
-                min-height: 20px;
-            }
-            QToolButton:hover {
-                background: #f8f9fa;
-                border-color: #6c757d;
-            }
-            QToolButton:checked {
-                background: #007bff;
-                color: white;
-                border-color: #0056b3;
-            }
+        self._filter_buttons = []
+
+        filter_bar = QWidget()
+        filter_bar.setObjectName("FilterBar")
+        filter_layout = QHBoxLayout(filter_bar)
+        filter_layout.setContentsMargins(16, 8, 16, 8)
+        filter_layout.setSpacing(12)
+
+        # Rating filter controls
+        rating_container = QWidget()
+        rating_container.setObjectName("RatingContainer")
+        rating_layout = QHBoxLayout(rating_container)
+        rating_layout.setContentsMargins(0, 0, 0, 0)
+        rating_layout.setSpacing(6)
+
+        rating_label = QLabel("Rating")
+        rating_label.setObjectName("FilterLabel")
+        rating_layout.addWidget(rating_label)
+        rating_layout.addWidget(self.star_filter)
+        filter_layout.addWidget(rating_container)
+
+        # Type filter controls
+        type_container = QWidget()
+        type_container.setObjectName("TypeContainer")
+        type_layout = QHBoxLayout(type_container)
+        type_layout.setContentsMargins(0, 0, 0, 0)
+        type_layout.setSpacing(6)
+
+        type_label = QLabel("Type")
+        type_label.setObjectName("FilterLabel")
+        type_layout.addWidget(type_label)
+
+        self.btn_all_filter = self._build_type_filter_button("All", "all", checked=True)
+        self.btn_image_filter = self._build_type_filter_button("📷 Images", "image")
+        self.btn_video_filter = self._build_type_filter_button("🎬 Videos", "video")
+
+        type_layout.addWidget(self.btn_all_filter)
+        type_layout.addWidget(self.btn_image_filter)
+        type_layout.addWidget(self.btn_video_filter)
+        filter_layout.addWidget(type_container)
+
+        filter_layout.addStretch(1)
+
+        self.active_filters_label = QLabel()
+        self.active_filters_label.setObjectName("ActiveFiltersLabel")
+        filter_layout.addWidget(self.active_filters_label)
+
+        self.clear_filters_btn = QToolButton()
+        self.clear_filters_btn.setText("Reset")
+        self.clear_filters_btn.setToolTip("Clear all active filters")
+        self.clear_filters_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        filter_layout.addWidget(self.clear_filters_btn)
+
+        self._filter_buttons.append(self.clear_filters_btn)
+
+        self._update_filter_summary()
+
+        return filter_bar
+
+    def _build_type_filter_button(self, text, type_name, *, checked=False):
+        """Create a themed, checkable button for the type filter bar."""
+        button = QToolButton()
+        button.setText(text)
+        button.setCheckable(True)
+        button.setChecked(checked)
+        button.setProperty("type_name", type_name)
+        button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.type_filter_group.addButton(button)
+        self._filter_buttons.append(button)
+        return button
+
+    def _clear_filters(self):
+        """Reset all active filters to their default state."""
+        if hasattr(self, "star_filter"):
+            self.star_filter.blockSignals(True)
+            self.star_filter.set_rating(0)
+            self.star_filter.blockSignals(False)
+        self._rating_filter = 0
+
+        self.type_filter_group.blockSignals(True)
+        self.btn_all_filter.setChecked(True)
+        self.type_filter_group.blockSignals(False)
+        self._type_filter = "all"
+
+        self._tag_filters = {}
+        self._apply_filters()
+
+    def _collect_active_filters(self):
+        """Return a human-readable list of active filters for UI display."""
+        active_filters = []
+        if self._rating_filter > 0:
+            active_filters.append(f"Rating ≥ {self._rating_filter}")
+        if self._type_filter != "all":
+            active_filters.append(self._type_filter.title())
+        if self._tag_filters:
+            active_filters.append(f"AI tags ×{len(self._tag_filters)}")
+        return active_filters
+
+    def _update_filter_summary(self):
+        """Update the summary label to reflect current filter state."""
+        if not hasattr(self, "active_filters_label"):
+            return
+
+        active_filters = self._collect_active_filters()
+        if active_filters:
+            summary_text = "Active: " + " • ".join(active_filters)
+        else:
+            summary_text = "No filters applied"
+        self.active_filters_label.setText(summary_text)
+
+    def _style_filter_buttons(self):
+        """Apply theme-aware styling to the inline filter buttons."""
+        if not self.theme_manager or not hasattr(self, "_filter_buttons"):
+            return
+
+        colors = self.theme_manager.get_current_theme()
+        button_style = f"""
+            QToolButton {{
+                background: {colors.bg_secondary};
+                border: 1px solid {colors.border_light};
+                border-radius: 6px;
+                padding: 4px 12px;
+                color: {colors.text_primary};
+                font-weight: 500;
+            }}
+            QToolButton:hover {{
+                background: {colors.bg_hover};
+                border-color: {colors.border_focus};
+            }}
+            QToolButton:checked {{
+                background: {colors.accent_primary};
+                color: #ffffff;
+                border-color: {colors.accent_primary};
+            }}
         """
 
-        self.btn_all_filter = QToolButton(text="All", checkable=True, checked=True)
-        self.btn_all_filter.setStyleSheet(button_style)
-
-        self.btn_image_filter = QToolButton(text="📷 Images", checkable=True)
-        self.btn_image_filter.setStyleSheet(button_style)
-
-        self.btn_video_filter = QToolButton(text="🎬 Videos", checkable=True)
-        self.btn_video_filter.setStyleSheet(button_style)
-
-        for btn, type_name in [(self.btn_all_filter, "all"), (self.btn_image_filter, "image"),
-                               (self.btn_video_filter, "video")]:
-            btn.setProperty("type_name", type_name)
-            self.type_filter_group.addButton(btn)
+        for button in self._filter_buttons:
+            button.setStyleSheet(button_style)
 
     def _connect_signals(self):
         self.add_folder_btn.clicked.connect(self.add_folder)
@@ -332,6 +464,7 @@ class AssetBrowserPanel(QWidget):
         self.ai_filter_btn.clicked.connect(self._show_ai_filter_menu)
         self.star_filter.filter_changed.connect(self._on_rating_filter_changed)
         self.type_filter_group.buttonClicked.connect(self._on_type_filter_changed)
+        self.clear_filters_btn.clicked.connect(self._clear_filters)
         self.folder_tree.customContextMenuRequested.connect(self._folder_context_menu)
         self.folder_tree.selectionModel().selectionChanged.connect(self._on_folder_selected)
         self.asset_view.customContextMenuRequested.connect(self._asset_context_menu)
@@ -414,13 +547,7 @@ class AssetBrowserPanel(QWidget):
         menu.addAction(type_action)
 
         # Show active filters status
-        active_filters = []
-        if self._rating_filter > 0:
-            active_filters.append(f"Rating: {self._rating_filter}+ stars")
-        if self._type_filter != "all":
-            active_filters.append(f"Type: {self._type_filter}")
-        if self._tag_filters:
-            active_filters.append(f"AI Tags: {len(self._tag_filters)} layers")
+        active_filters = self._collect_active_filters()
 
         if active_filters:
             menu.addSeparator()
@@ -845,6 +972,7 @@ class AssetBrowserPanel(QWidget):
             filtered = self._apply_tag_filters(filtered)
 
         self.asset_model.set_assets(filtered)
+        self._update_filter_summary()
 
     def _apply_tag_filters(self, assets):
         """Apply AI tag filters to asset list"""

@@ -132,12 +132,23 @@ class StarRatingFilter(QWidget):
         super().__init__(parent)
         self._rating = 0
         self.setMouseTracking(True)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.star_size = 14
+        self.star_spacing = 4
+        self.active_color = QColor("#ffc107")
+        self.inactive_color = QColor("#555555")
 
     def set_rating(self, rating):
         if self._rating != rating:
             self._rating = rating
             self.update()
             self.filter_changed.emit(self._rating)
+
+    def set_colors(self, active_color: QColor | str, inactive_color: QColor | str):
+        """Update the star colors based on the active theme."""
+        self.active_color = QColor(active_color)
+        self.inactive_color = QColor(inactive_color)
+        self.update()
 
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -156,23 +167,23 @@ class StarRatingFilter(QWidget):
                 QPointF(0.39, 0.35),
             ]
         )
-        star_size = 12
         for i in range(5):
             painter.save()
-            painter.translate(i * (star_size + 2), 0)
-            painter.scale(star_size, star_size)
-            painter.setBrush(QColor("#ffc107") if i < self._rating else QColor("#555"))
+            painter.translate(i * (self.star_size + self.star_spacing), 0)
+            painter.scale(self.star_size, self.star_size)
+            painter.setBrush(self.active_color if i < self._rating else self.inactive_color)
             painter.setPen(Qt.PenStyle.NoPen)
             painter.drawPolygon(star_polygon)
             painter.restore()
 
     def mousePressEvent(self, event):
-        star_size = 12
         click_x = event.pos().x()
-        new_rating = int(click_x / (star_size + 2)) + 1
+        new_rating = int(click_x / (self.star_size + self.star_spacing)) + 1
         if new_rating > 5:
             new_rating = 5
         self.set_rating(0 if new_rating == self._rating else new_rating)
 
     def minimumSizeHint(self):
-        return QSize(5 * 12 + 4 * 2, 14)
+        width = 5 * self.star_size + 4 * self.star_spacing
+        height = self.star_size + 2
+        return QSize(width, height)
