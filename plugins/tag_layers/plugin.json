@@ -1,15 +1,30 @@
 {
-  "uuid": "tag-layers-core",
+  "uuid": "90b3cbea-8759-4606-92c5-361d4a2e0209",
+  "id": "tag_layers",
   "name": "Tag Layers",
-  "type": "plugin",
-  "version": "1.0.0",
-  "tags": [
-    "assets",
-    "tags"
-  ],
+  "author": "PixMotion Studios",
+  "version": "1.1.0",
+  "description": "User-defined tag layers with AI Hub-powered scanning and management.",
   "entry_point": "plugins.tag_layers.plugin:register_plugin",
+  "tags": [
+    "core",
+    "assets",
+    "ai"
+  ],
   "dependencies": [
-    "Core Services",
-    "Asset Library"
-  ]
+    "Core Services"
+  ],
+  "optional_dependencies": [
+    "AI Hub"
+  ],
+  "provides": {
+    "services": [
+      "tag_layer_registry",
+      "tag_layer_runner"
+    ],
+    "ui_docks": [
+      "tag_layer_editor"
+    ]
+  }
 }
+

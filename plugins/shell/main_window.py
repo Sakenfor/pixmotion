@@ -187,7 +187,7 @@ class MainWindow(QMainWindow):
     def _open_settings_dialog(self) -> None:
         if not self.settings:
             return
-        dialog = SettingsDialog(self.settings, self)
+        dialog = SettingsDialog(self.settings, self.framework, self)
         dialog.exec()
 
     def clear_all_docks(self):

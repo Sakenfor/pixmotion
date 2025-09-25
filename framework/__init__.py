@@ -23,21 +23,59 @@ class LogManager:
     """Handles logging and user-facing notifications."""
 
     def __init__(self):
-        logging.basicConfig(level=logging.INFO, format='%(asctime)s - [%(levelname)s] - %(message)s')
+        self._setup_logging()
         self._notification_callbacks = []
 
+    def _setup_logging(self):
+        """Setup logging with proper configuration and file output."""
+        import os
+        from pathlib import Path
+
+        # Get log level from environment or default to INFO
+        log_level = os.environ.get('LOG_LEVEL', 'INFO').upper()
+
+        # Create logs directory in user data folder
+        try:
+            from framework.config_manager import ConfigManager
+            config_manager = ConfigManager()
+            log_dir = config_manager.cache_dir / "logs"
+            log_dir.mkdir(parents=True, exist_ok=True)
+            log_file = log_dir / "pixmotion.log"
+        except Exception:
+            # Fallback to current directory if config manager fails
+            log_file = Path("pixmotion.log")
+
+        # Clear any existing handlers to avoid duplicates
+        root_logger = logging.getLogger()
+        for handler in root_logger.handlers[:]:
+            root_logger.removeHandler(handler)
+
+        # Setup logging configuration
+        logging.basicConfig(
+            level=getattr(logging, log_level, logging.INFO),
+            format='%(asctime)s - [%(levelname)s] %(name)s: %(message)s',
+            handlers=[
+                logging.FileHandler(log_file, encoding='utf-8'),
+                logging.StreamHandler()  # Console output
+            ]
+        )
+
+        # Create application logger
+        self.logger = logging.getLogger('PixMotion')
+        self.logger.info(f"Logging initialized. Level: {log_level}, File: {log_file}")
+
     def info(self, msg, *args, **kwargs):
-        logging.info(msg, *args, **kwargs)
+        self.logger.info(msg, *args, **kwargs)
 
     def warning(self, msg, *args, **kwargs):
-        logging.warning(msg, *args, **kwargs)
+        self.logger.warning(msg, *args, **kwargs)
 
     def error(self, msg, *args, **kwargs):
-        logging.error(msg, *args, **kwargs)
+        self.logger.error(msg, *args, **kwargs)
 
     def debug(self, message):
         """Logs a message with the DEBUG level."""
-        self.error(message)
+        self.logger.debug(message)
 
     def notification(self, message):
         self.info(f"NOTIFICATION: {message}")
@@ -616,6 +654,11 @@ class Framework:
         if db_service:
             db_service.create_all_tables()
 
+            # Ensure tag layer defaults are created after database tables exist
+            tag_registry = self.get_service("tag_layer_registry")
+            if tag_registry:
+                tag_registry.ensure_default_layers()
+
         self.log_manager.info("Processing contributed commands...")
         for contrib in self.get_contributions("commands"):
             self.command_manager.register(contrib["id"], contrib["class"])
@@ -706,6 +749,11 @@ class Framework:
         db_service = self.get_service("database_service")
         if db_service:
             db_service.create_all_tables()
+
+            # Ensure tag layer defaults are created after database tables exist
+            tag_registry = self.get_service("tag_layer_registry")
+            if tag_registry:
+                tag_registry.ensure_default_layers()
 
         self._finalize_initialization()
 

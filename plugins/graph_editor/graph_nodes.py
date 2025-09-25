@@ -1,6 +1,6 @@
 from __future__ import annotations
 import typing
-from PyQt6.QtCore import QPointF, QRectF, Qt
+from PyQt6.QtCore import QPointF, QRectF, Qt, pyqtSlot
 from PyQt6.QtGui import QPainter, QPen, QColor, QBrush, QFont, QPainterPath
 from PyQt6.QtWidgets import QGraphicsObject, QGraphicsEllipseItem, QMenu
 
@@ -183,6 +183,14 @@ class _GraphNodeItem(QGraphicsObject):
         painter.setFont(font)
         painter.drawText(header.adjusted(8, 0, -8, 0), Qt.AlignmentFlag.AlignVCenter, self.node.label or self.node.id)
         self.setToolTip(f"{self.node.id}\n{self.node.type}")
+
+    @pyqtSlot()
+    def update_display(self):
+        """Update the visual representation of the node when properties change."""
+        self.update()  # Trigger a repaint
+        self.setToolTip(f"{self.node.id}\n{self.node.type}")
+        # Update edges in case node properties affected connections
+        self.update_edges()
 
     def contextMenuEvent(self, event):
         menu = QMenu()

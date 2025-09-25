@@ -2,7 +2,7 @@ from __future__ import annotations
 import typing
 from enum import Enum
 from PyQt6.QtCore import QPointF, pyqtSignal, QRectF, Qt
-from PyQt6.QtGui import QPainter, QPen, QColor, QKeyEvent, QPainterPath, QDragEnterEvent, QDropEvent
+from PyQt6.QtGui import QPainter, QPen, QColor, QKeyEvent, QPainterPath, QDragEnterEvent, QDropEvent, QMouseEvent
 from PyQt6.QtWidgets import QGraphicsView, QGraphicsScene, QMenu, QGraphicsPathItem
 
 # Forward declare to avoid circular imports, for type hints only
@@ -46,7 +46,7 @@ class _NodeGraphicsView(QGraphicsView):
     def __init__(self, scene: QGraphicsScene, parent=None):
         super().__init__(scene, parent)
         self.setRenderHints(QPainter.RenderHint.Antialiasing | QPainter.RenderHint.TextAntialiasing)
-        self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
+        self.setDragMode(QGraphicsView.DragMode.RubberBandDrag)  # Enable rubber band selection
         self.setViewportUpdateMode(QGraphicsView.ViewportUpdateMode.FullViewportUpdate)
         self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
         self.setResizeAnchor(QGraphicsView.ViewportAnchor.AnchorViewCenter)
@@ -113,6 +113,56 @@ class _NodeGraphicsView(QGraphicsView):
 
     # ... (rest of the file is unchanged)
 
+    def mousePressEvent(self, event):
+        """Handle mouse press with support for panning and multi-select."""
+        if event.button() == Qt.MouseButton.MiddleButton:
+            # Middle mouse button for panning
+            self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
+            fake_event = QMouseEvent(
+                event.type(), event.pos(), Qt.MouseButton.LeftButton,
+                Qt.MouseButton.LeftButton, event.modifiers()
+            )
+            super().mousePressEvent(fake_event)
+        else:
+            # Check if we're clicking on empty space with left button
+            if (event.button() == Qt.MouseButton.LeftButton and
+                not self.itemAt(event.pos()) and
+                not event.modifiers() & Qt.KeyboardModifier.AltModifier):
+                # Enable rubber band for selection
+                self.setDragMode(QGraphicsView.DragMode.RubberBandDrag)
+            elif event.modifiers() & Qt.KeyboardModifier.AltModifier:
+                # Alt+drag for panning
+                self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
+
+            super().mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        """Handle mouse release and restore selection mode."""
+        if event.button() == Qt.MouseButton.MiddleButton:
+            # Reset to selection mode after middle mouse release
+            self.setDragMode(QGraphicsView.DragMode.RubberBandDrag)
+        elif self._interaction_mode != InteractionMode.DEFAULT:
+            # Handle edge dragging
+            target_item = self.itemAt(event.pos())
+            from .graph_nodes import _Socket
+            target_socket: _Socket | None = target_item if isinstance(target_item, _Socket) else None
+
+            if self._interaction_mode == InteractionMode.DRAGGING_EDGE:
+                source_socket: _Socket = self._drag_item
+                self.edge_dropped.emit(source_socket, target_socket)
+            elif self._interaction_mode == InteractionMode.REWIRE_EDGE:
+                edge_item: _GraphEdgeItem
+                is_source: bool
+                edge_item, is_source = self._drag_item
+                self.edge_rewired.emit(edge_item, is_source, target_socket)
+
+            self._cancel_drag()
+            event.accept()
+        else:
+            # Ensure we're in selection mode for normal operations
+            self.setDragMode(QGraphicsView.DragMode.RubberBandDrag)
+            super().mouseReleaseEvent(event)
+
     def keyPressEvent(self, event: QKeyEvent):
         if event.key() == Qt.Key.Key_Escape:
             if self._interaction_mode != InteractionMode.DEFAULT:
@@ -133,25 +183,6 @@ class _NodeGraphicsView(QGraphicsView):
         else:
             super().mouseMoveEvent(event)
 
-    def mouseReleaseEvent(self, event):
-        if event.button() == Qt.MouseButton.LeftButton and self._interaction_mode != InteractionMode.DEFAULT:
-            target_item = self.itemAt(event.pos())
-            from .graph_nodes import _Socket
-            target_socket: _Socket | None = target_item if isinstance(target_item, _Socket) else None
-
-            if self._interaction_mode == InteractionMode.DRAGGING_EDGE:
-                source_socket: _Socket = self._drag_item
-                self.edge_dropped.emit(source_socket, target_socket)
-            elif self._interaction_mode == InteractionMode.REWIRE_EDGE:
-                edge_item: _GraphEdgeItem
-                is_source: bool
-                edge_item, is_source = self._drag_item
-                self.edge_rewired.emit(edge_item, is_source, target_socket)
-
-            self._cancel_drag()
-            event.accept()
-        else:
-            super().mouseReleaseEvent(event)
 
     def start_edge_drag(self, socket: _Socket):
         self._interaction_mode = InteractionMode.DRAGGING_EDGE

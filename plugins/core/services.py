@@ -7,39 +7,33 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from .models import Base
+from framework.config_manager import ConfigManager
 
 
 class SettingsService:
-    """Manages application settings from a JSON file."""
+    """Manages application settings using proper OS conventions."""
 
     def __init__(self, framework):
         self.framework = framework
         self.log = framework.get_service("log_manager")
-        self._project_root = Path(framework.get_project_root())
-        self.settings_path = os.path.join(
-            framework.get_project_root(), "app_settings.json"
-        )
-        self.settings = self._load_settings()
-        if "user_data_root" not in self.settings:
-            self.settings["user_data_root"] = "data"
-        self._user_data_root_path = self._compute_user_data_root_path()
+        self.config_manager = ConfigManager()
 
-    def _load_settings(self):
-        try:
-            with open(self.settings_path, "r") as f:
-                return json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError):
-            self.log.warning("Settings file not found or invalid. Using defaults.")
-            return {}
+        # Migrate old settings if they exist
+        old_settings_path = Path(framework.get_project_root()) / "app_settings.json"
+        if old_settings_path.exists():
+            self.config_manager.migrate_old_settings(old_settings_path)
+            self.log.info("Migrated settings to user directories")
+
+        self.settings = self.config_manager.load_settings()
+        self._user_data_root_path = Path(self.config_manager.user_data_dir)
 
     def get(self, key, default=None):
-        return self.settings.get(key, default)
+        return self.config_manager.get(key, default)
 
     def set(self, key, value):
-        self.settings[key] = value
+        self.config_manager.set(key, value)
         if key == "user_data_root":
-            self._user_data_root_path = self._compute_user_data_root_path(value)
-        self._save_settings()
+            self._user_data_root_path = Path(self.config_manager.user_data_dir)
 
     def resolve_user_path(self, *parts: str, ensure_exists: bool = True) -> str:
         """Resolve a path relative to the configured user data root."""
@@ -77,21 +71,9 @@ class SettingsService:
 
         return str(path)
 
-    def _compute_user_data_root_path(self, value: str | None = None) -> Path:
-        root_value = str(value if value is not None else self.settings.get("user_data_root", "data") or "data")
-        candidate = Path(root_value.replace("\\", os.sep)).expanduser()
-        if not candidate.is_absolute():
-            candidate = self._project_root / candidate
-        candidate = Path(os.path.normpath(str(candidate)))
-        candidate.mkdir(parents=True, exist_ok=True)
-        return candidate
-
-    def _save_settings(self):
-        try:
-            with open(self.settings_path, "w") as f:
-                json.dump(self.settings, f, indent=4)
-        except Exception as e:
-            self.log.error(f"Failed to save settings: {e}")
+    def get_pixverse_api_key(self):
+        """Get Pixverse API key from environment or config."""
+        return self.config_manager.get_pixverse_api_key()
 
 
 class DatabaseService:
@@ -102,12 +84,8 @@ class DatabaseService:
         self.log = framework.get_service("log_manager")
         settings = framework.get_service("settings_service")
 
-        db_filename = settings.get("database_filename", "pixmotion.db")
-        if os.path.isabs(db_filename):
-            db_path = db_filename
-            os.makedirs(os.path.dirname(db_path) or os.curdir, exist_ok=True)
-        else:
-            db_path = settings.resolve_user_path(db_filename)
+        # Use the config manager's database path
+        db_path = settings.config_manager.database_path
         db_uri = f"sqlite:///{db_path}"
         self.log.info(f"Database URI set to: {db_uri}")
 

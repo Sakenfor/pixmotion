@@ -10,7 +10,6 @@
   "dependencies": [
     "Core Services",
     "Asset Library",
-    "Pixverse Generation",
-    "Web Importer"
+    "Pixverse Generation"
   ]
 }

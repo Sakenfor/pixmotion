@@ -1,6 +1,7 @@
 /data/thumbnails
 /data/generated_media
 /data/ai_models
+packages/
 node_modules/
 __pycache__/
 *.log
@@ -8,3 +9,4 @@ __pycache__/
 *.jpg
 dist/
 build/
+/docs

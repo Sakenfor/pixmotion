@@ -26,6 +26,7 @@ from PyQt6.QtMultimedia import QMediaPlayer
 from PyQt6.QtMultimediaWidgets import QVideoWidget
 
 from plugins.core.models import Asset
+from framework.modern_ui import ModernCard, ModernSplitter, ModernTabWidget, apply_modern_style
 
 
 class AspectLockedVideoWidget(QVideoWidget):
@@ -408,8 +409,10 @@ class GeneratorPanel(QWidget):
         self.db = framework.get_service("database_service")
         self.asset_service = framework.get_service("asset_service")
         self.events = framework.get_service("event_manager")
+        self.theme_manager = framework.get_service("theme_manager")
         self._init_ui()
         self.connect_signals()
+        self._apply_modern_theme()
 
     def _init_ui(self):
         main_layout = QVBoxLayout(self)
@@ -428,11 +431,16 @@ class GeneratorPanel(QWidget):
         self.prompt_edit.setPlaceholderText("Enter prompt or drop an asset...")
         controls_splitter.addWidget(self.prompt_edit)
 
-        tabs = QTabWidget()
+        tabs = ModernTabWidget()
         settings_widget = QWidget()
         advanced_widget = QWidget()
         tabs.addTab(settings_widget, "Settings")
         tabs.addTab(advanced_widget, "Advanced")
+
+        # Apply modern styling to tabs
+        if self.theme_manager:
+            apply_modern_style(tabs, self.theme_manager, "tab")
+
         controls_splitter.addWidget(tabs)
 
         controls_splitter.setSizes([200, 150])
@@ -483,6 +491,10 @@ class GeneratorPanel(QWidget):
         main_layout.addLayout(inputs_layout, stretch=1)
         main_layout.addWidget(controls_splitter, stretch=2)
         main_layout.addLayout(buttons_layout)
+
+        # Emit event for prompt enhancer plugin integration
+        if self.events:
+            self.events.publish("generator_panel_initialized", panel=self)
 
     def connect_signals(self):
         self.basic_generate_btn.clicked.connect(self._on_basic_generate)
@@ -629,3 +641,24 @@ class GeneratorPanel(QWidget):
             return None
         # Use the service to get the path, which is more robust.
         return self.asset_service.get_asset_path(asset_id)
+
+    def _apply_modern_theme(self):
+        """Apply modern theme styling to all UI components"""
+        if not self.theme_manager:
+            return
+
+        # Apply modern input styling to prompt text edit
+        if hasattr(self, 'prompt_edit'):
+            apply_modern_style(self.prompt_edit, self.theme_manager, "input")
+
+        # Apply modern button styling to generate buttons
+        for btn_name in ['basic_generate_btn', 'transition_generate_btn']:
+            if hasattr(self, btn_name):
+                btn = getattr(self, btn_name)
+                apply_modern_style(btn, self.theme_manager, "button_primary")
+
+        # Apply modern input styling to form controls
+        for widget_name in ['seed_input', 'aspect_combo', 'style_combo', 'motion_slider', 'upscale_combo']:
+            if hasattr(self, widget_name):
+                widget = getattr(self, widget_name)
+                apply_modern_style(widget, self.theme_manager, "input")

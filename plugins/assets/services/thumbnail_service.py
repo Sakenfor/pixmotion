@@ -5,7 +5,7 @@ from PyQt6.QtCore import QSize
 
 class ThumbnailService:
     """
-    A service for loading and caching thumbnails to avoid blocking the UI.
+    A service for loading and caching QPixmap objects to avoid blocking the UI.
     It's designed to be used by a background worker.
     """
 

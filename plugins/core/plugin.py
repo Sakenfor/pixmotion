@@ -4,6 +4,8 @@ from typing import Any
 from .services import SettingsService, DatabaseService
 from .commands import PasteFromClipboardCommand, ReloadPluginsCommand
 from .graph_scales import DEFAULT_QUALITATIVE_SCALES
+from framework.ai_hub_service import AIHubService
+from framework.theme_manager import ThemeManager
 
 
 class Plugin(IPlugin):
@@ -27,6 +29,18 @@ class Plugin(IPlugin):
         # connect to the database automatically when it's first used.
         framework.register_contribution(
             "services", {"id": "database_service", "instance": db_service}
+        )
+
+        # 3.5. Create and register AI Hub service
+        ai_hub_service = AIHubService(framework)
+        framework.register_contribution(
+            "services", {"id": "ai_hub", "instance": ai_hub_service}
+        )
+
+        # 3.6. Create and register Theme Manager service
+        theme_manager = ThemeManager(framework)
+        framework.register_contribution(
+            "services", {"id": "theme_manager", "instance": theme_manager}
         )
 
         # 4. Register core commands

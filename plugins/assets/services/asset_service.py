@@ -4,7 +4,7 @@ import hashlib
 from PIL import Image, ImageOps
 import cv2
 
-from ..models import Asset, AssetType
+from plugins.core.models import Asset, AssetType
 
 
 class AssetService:
@@ -88,6 +88,85 @@ class AssetService:
     def find_duplicates(self):
         return self.repository.find_duplicates()
 
+    def run_ai_tagging_on_folder(self, folder_path, priority_level=1):
+        """Run AI tagging on all assets in a folder"""
+        def tagging_task():
+            try:
+                # Get all assets in the folder
+                actual_folder = folder_path
+                if folder_path == "__clipboard__":
+                    actual_folder = self.settings.resolve_user_path("clipboard", ensure_exists=False)
+                elif not os.path.isabs(folder_path):
+                    actual_folder = self.settings.resolve_user_path(folder_path, ensure_exists=False)
+
+                if not os.path.isdir(actual_folder):
+                    self.log.warning(f"Folder not found for AI tagging: {actual_folder}")
+                    return
+
+                # Query assets from the database
+                db_service = self.framework.get_service("database_service")
+                from plugins.core.models import Asset
+
+                session = db_service.get_session()
+                try:
+                    assets = session.query(Asset).filter(Asset.path.startswith(actual_folder)).all()
+                    asset_data = [{"id": a.id, "path": a.path} for a in assets]
+
+                    if not asset_data:
+                        self.log.info(f"No assets found in folder: {folder_path}")
+                        return
+
+                    self.log.info(f"Starting AI tagging for {len(asset_data)} assets in {folder_path} (priority {priority_level})")
+
+                    tag_runner = self.framework.get_service("tag_layer_runner")
+                    if tag_runner:
+                        tag_runner.run_layers_for_assets(asset_data, priority_filter=priority_level)
+                        self.events.publish("assets:bulk_tags_updated", folder=folder_path, count=len(asset_data))
+                        self.log.notification(f"AI tagging completed for {len(asset_data)} assets")
+                    else:
+                        self.log.warning("Tag layer runner service not available")
+                finally:
+                    session.close()
+            except Exception as e:
+                self.log.error(f"Failed to run AI tagging on folder {folder_path}: {e}", exc_info=True)
+
+        worker = self.framework.get_service("worker_manager")
+        worker.submit(tagging_task)
+
+    def run_deep_ai_analysis(self, asset_ids):
+        """Run deep AI analysis (priority 3) on specific assets"""
+        def deep_analysis_task():
+            try:
+                db_service = self.framework.get_service("database_service")
+                from plugins.core.models import Asset
+
+                session = db_service.get_session()
+                try:
+                    assets = session.query(Asset).filter(Asset.id.in_(asset_ids)).all()
+                    asset_data = [{"id": a.id, "path": a.path} for a in assets]
+
+                    if not asset_data:
+                        self.log.info("No assets found for deep analysis")
+                        return
+
+                    self.log.info(f"Starting deep AI analysis for {len(asset_data)} assets")
+
+                    tag_runner = self.framework.get_service("tag_layer_runner")
+                    if tag_runner:
+                        # Run deep processing layers
+                        tag_runner.run_layers_for_assets(asset_data, priority_filter=3)
+                        self.events.publish("assets:deep_analysis_completed", asset_ids=asset_ids)
+                        self.log.notification(f"Deep analysis completed for {len(asset_data)} assets")
+                    else:
+                        self.log.warning("Tag layer runner service not available")
+                finally:
+                    session.close()
+            except Exception as e:
+                self.log.error(f"Failed to run deep AI analysis: {e}", exc_info=True)
+
+        worker = self.framework.get_service("worker_manager")
+        worker.submit(deep_analysis_task)
+
     def _initial_scan(self, **kwargs):
         self.log.info("Performing initial asset scan...")
         output_dir_setting = self.settings.get("output_directory", "generated_media")
@@ -126,7 +205,26 @@ class AssetService:
             # Announce that a new asset has been successfully added
             self.events.publish("assets:new_asset_added", asset_id=created_asset.id)
 
+            # Auto-tag new asset with light AI processing
+            self._schedule_auto_tagging(created_asset)
+
         return created_asset
+
+    def _schedule_auto_tagging(self, asset):
+        """Schedule automatic AI tagging for new assets"""
+        def auto_tag_task():
+            try:
+                tag_runner = self.framework.get_service("tag_layer_runner")
+                if tag_runner:
+                    # Run only light/fast processing (priority 1) for immediate filtering
+                    asset_data = [{"id": asset.id, "path": asset.path}]
+                    tag_runner.run_layers_for_assets(asset_data, priority_filter=1)
+                    self.events.publish("assets:tags_updated", asset_id=asset.id)
+            except Exception as e:
+                self.log.error(f"Failed to auto-tag asset {asset.id}: {e}", exc_info=True)
+
+        worker = self.framework.get_service("worker_manager")
+        worker.submit(auto_tag_task)
 
     def scan_folder(self, folder_path):
         abs_folder_path = folder_path

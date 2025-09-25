@@ -1,0 +1,17 @@
+[
+  {
+    "id": "basic",
+    "name": "Basic File Tags",
+    "generator": "services.tag_layers.ai_quick_generator:AIQuickGenerator"
+  },
+  {
+    "id": "ai_quick",
+    "name": "AI Quick",
+    "generator": "services.tag_layers.ai_quick_generator:AIQuickGenerator"
+  },
+  {
+    "id": "ai_deep",
+    "name": "AI Deep",
+    "generator": "services.tag_layers.ai_deep_generator:AIDeepGenerator"
+  }
+]

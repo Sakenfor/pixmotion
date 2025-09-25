@@ -1,7 +1,7 @@
 {
     "pixverse_api_key": "sk-435407d6b619f631a43a5019e63c340c",
     "user_data_root": "data",
-    "output_directory": "generated_media",
+    "output_directory": "A:/pixverse_ai/.pixmotion",
     "database_filename": "pixmotion.db",
     "library_folders": [
         "A:/pixverse_ai/good images/mindy vega",
@@ -10,19 +10,17 @@
         "A:/pixverse_ai/good images/crissy moran",
         "A:/pixverse_ai/good images/inthecrack"
     ],
-    "window_geometry": "01d9d0cb0003000000000063000001aa000002fb0000039b00000063000001c8000002fb0000039b0000000000000000080000000063000001c8000002fb0000039b",
-    "window_state": "000000ff00000000fd0000000200000000000002990000019efc0200000003fb0000001c00670072006100700068005f006500780070006c006f007200650072030000031a000001820000046f00000267fc000000210000019e000000f500fffffffa000000010100000002fb0000001e00670065006e0065007200610074006f0072005f00700061006e0065006c03000003e70000006400000192000002defb0000001a00610073007300650074005f00620072006f007700730065007201000000000000070b0000022600fffffffb0000001a00610073007300650074005f00620072006f00770073006500720100000021000002410000000000000000000000010000029200000241fc0200000002fb0000001e00670065006e0065007200610074006f0072005f00700061006e0065006c0100000021000003680000000000000000fb0000001c00670072006100700068005f006500780070006c006f00720065007203000004fa000001820000029500000241000000000000019e00000004000000040000000800000008fc0000000200000000000000000000000200000000",
+    "window_geometry": "01d9d0cb00030000000003e700000110000007b900000400000003e70000012e000007b90000040000000000000000000800000003e70000012e000007b900000400",
+    "window_state": "000000ff00000000fd0000000300000000000003d30000029dfc0200000002fb0000001c00670072006100700068005f006500780070006c006f007200650072020000038a000001dd000003b3000001a4fb0000001a00610073007300650074005f00620072006f007700730065007200000000210000029d0000010900ffffff00000001000003d30000029dfc0200000003fb0000001e00670065006e0065007200610074006f0072005f00700061006e0065006c01000000210000029d0000016900fffffffb0000001c00670072006100700068005f006500780070006c006f00720065007203000004fa000001820000029500000241fb00000014007400610067005f006c00610079006500720073010000002100000282000000000000000000000002000003d30000029dfc0100000002fb0000001e00670065006e0065007200610074006f0072005f00700061006e0065006c0100000000000003d30000000000000000fb0000001a00610073007300650074005f00620072006f00770073006500720100000000000003d30000000000000000000000000000029d00000004000000040000000800000008fc0000000200000000000000000000000200000000",
     "panel_states": {
-        "asset_browser": {
-            "selected_folder": "A:/pixverse_ai/good images/inthecrack"
-        },
+        "asset_browser": {},
         "graph_explorer": {
-            "selected_graph": "1"
+            "selected_graph": ""
         },
         "generator_panel": {
             "title": "",
-            "prompt": "as woman is shovering, we suddenly see gorilla's hands show up form bottom of image, they slowly grab the butcheeks and start massaging them in grabbing motion in circular style (first they drag butcheeks outwards then upwards then downwards and inwards and on repeat), woman slowly starts matching the motion with her lower body, leaning forward and arching her spine making the shape of her butcheeks be perfectly displayed as gorilla speeds up and suddenly pulls the part of panty that is inbetween butcheeks to side, leaving it there and that is when woman starts to have kind of dance hip sway towards gorilla's face with heavy breathing as gorilla aproaches butcheeks with face up close",
-            "input_asset1_id": null,
+            "prompt": "camera pans to woman so her body fits camera view, she is Standing straight, arms extended horizontally to the sides, palms facing down and Legs straight, feet shoulder-width apart and camera pans so her whole body fits the view and she stands still for 1 seconds, body forming a T shape. after 2 seconds she turns around back to camera and does same",
+            "input_asset1_id": "9bc82e8a03f76ab170be113647f0c0ead013dc15b9807b302a4fd04e89a64579",
             "input_asset2_id": null,
             "model": "v5",
             "quality": "360p",
@@ -31,7 +29,7 @@
             "style": "None",
             "motion_mode": "normal",
             "seed": null,
-            "negative_prompt": "objects merging"
+            "negative_prompt": "\"merged,\" \"conjoined,\" \"duplicate,\" \"extra limbs,\" \"extra fingers,\" \"fused fingers,\" \"long neck,\" \"malformed limbs\". "
         }
     },
     "log_level": "ERROR",

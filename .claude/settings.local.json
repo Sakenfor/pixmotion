@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//d/My Drive/code/pix-motion/**)",
+      "Read(//d/My Drive/code//**)",
+      "Bash(find:*)",
+      "Bash(python:*)",
+      "Bash(timeout:*)",
+      "Read(//c/Users/Stefan/Documents/PixMotion/**)",
+      "Read(//c/Users/Stefan/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

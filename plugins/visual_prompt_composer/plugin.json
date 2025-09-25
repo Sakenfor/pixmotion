@@ -1,0 +1,28 @@
+{
+    "uuid": "d4e5f6a7-b8c9-4d3e-a1b2-c3d4e5f6a7b8",
+    "name": "Visual Prompt Composer",
+    "version": "1.0.0",
+    "entry_point": "plugins.visual_prompt_composer.plugin:register_plugin",
+    "dependencies": ["Core Services", "Asset Library"],
+    "optional_dependencies": ["Pixverse Generation", "AI Hub"],
+    "provides": {
+        "services": [
+            "visual_composer_service",
+            "spatial_engine",
+            "timeline_manager",
+            "profile_manager",
+            "prompt_generator"
+        ],
+        "ui_docks": ["visual_prompt_composer"],
+        "commands": [
+            "composer.new_scene",
+            "composer.save_scene",
+            "composer.load_scene",
+            "composer.generate_prompt",
+            "composer.export_to_generator"
+        ]
+    },
+    "author": "PixMotion Team",
+    "description": "Advanced visual scene composer for precise AI prompt generation with spatial intelligence and temporal control",
+    "tags": ["ai", "composition", "animation", "prompt-generation"]
+}

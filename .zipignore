@@ -1,0 +1,24 @@
+# Ignore Python cache and compiled files
+__pycache__/
+*.pyc
+
+# Ignore log files
+*.log
+
+# Ignore hidden files
+.*
+
+
+
+
+# Ignore entire "data" folder (and its contents)
+data/
+
+# Ignore entire "packages" folder (and its contents)
+packages/
+
+# Ignore JetBrains project settings folder
+*.idea
+
+# Ignore all database files with .db extension
+*.db

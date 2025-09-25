@@ -10,15 +10,17 @@ asset management and metadata inspection.
 
 import math
 from typing import Dict, List, Optional, Tuple
-from PyQt6.QtCore import QPointF, Qt
+from PyQt6.QtCore import QPointF, Qt, QMetaObject
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QListWidget, QListWidgetItem, QSplitter, \
     QGraphicsScene, QLabel, QTreeWidget, QTreeWidgetItem, QCheckBox, QMessageBox, QDialog
 
 from framework.graph_schema import GraphDocument, GraphNode, GraphEdge, graph_from_dict, graph_to_dict
+from framework.modern_ui import apply_modern_style, ModernSplitter
 from .graph_view import _NodeGraphicsView
 from .graph_nodes import _GraphNodeItem, _Socket
 from .graph_edges import _GraphEdgeItem
 from .graph_dialogs import GraphCreateDialog, NodeCreateDialog, EdgeCreateDialog, EdgeManageDialog, DeleteNodeDialog
+from .node_properties_widget import NodePropertiesWidget
 
 
 REQUIRED_METADATA_KEYS: Tuple[str, ...] = ("persona_hint", "descriptor")
@@ -38,6 +40,7 @@ class GraphExplorerPanel(QWidget):
         self.log = framework.log_manager
         self.graph_service = framework.graph_service
         self.graph_registry = framework.graph_registry
+        self.theme_manager = framework.get_service("theme_manager")
 
         self._current_graph_id: Optional[str] = None
         self._current_graph: Optional[GraphDocument] = None
@@ -47,6 +50,7 @@ class GraphExplorerPanel(QWidget):
 
         self._build_ui()
         self._refresh_graphs()
+        self._apply_modern_theme()
 
     def _build_ui(self):
         root = QVBoxLayout(self)
@@ -83,10 +87,24 @@ class GraphExplorerPanel(QWidget):
         layout.addWidget(self._view)
         splitter.addWidget(container)
 
+        # Right panel with tabs for node properties and edge details
+        right_panel = QWidget()
+        right_layout = QVBoxLayout(right_panel)
+        right_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Properties widget for nodes
+        self._properties_widget = NodePropertiesWidget()
+        self._properties_widget.nodeChanged.connect(self._on_node_properties_changed)
+        right_layout.addWidget(self._properties_widget)
+
+        # Simple tree for edge details (hidden by default)
         self._detail_tree = QTreeWidget()
         self._detail_tree.setColumnCount(2)
         self._detail_tree.setHeaderLabels(["Field", "Value"])
-        splitter.addWidget(self._detail_tree)
+        self._detail_tree.hide()  # Initially hidden
+        right_layout.addWidget(self._detail_tree)
+
+        splitter.addWidget(right_panel)
 
         splitter.setSizes([240, 800, 360])
 
@@ -111,7 +129,8 @@ class GraphExplorerPanel(QWidget):
             node.asset_refs.append(asset_id)
             self.log.info(f"Asset '{asset_id}' added to node '{node_id}'.")
             self._mark_dirty(True)
-            if self._detail_tree.topLevelItem(0) and self._detail_tree.topLevelItem(0).text(1) == node_id:
+            # If this node is currently selected, refresh the properties display
+            if self._properties_widget.current_node and self._properties_widget.current_node.id == node_id:
                 self._show_node_details(node)
         else:
             self.log.info(f"Asset '{asset_id}' is already on node '{node_id}'.")
@@ -202,6 +221,7 @@ class GraphExplorerPanel(QWidget):
             self._summary_label.setText("No graphs available")
             self._current_graph = self._current_graph_id = None
             self._scene.clear()
+            self._properties_widget.set_node(None)
             self._detail_tree.clear()
             return
         for info in graphs:
@@ -372,6 +392,7 @@ class GraphExplorerPanel(QWidget):
         for idx, edge in enumerate(graph.edges):
             self._add_edge_item_to_scene(edge, idx)
 
+        self._properties_widget.set_node(None)
         self._detail_tree.clear()
         if self._scene.items():
             self._view.fitInView(self._scene.itemsBoundingRect(), Qt.AspectRatioMode.KeepAspectRatio)
@@ -391,37 +412,83 @@ class GraphExplorerPanel(QWidget):
             self._show_edge_details(self._current_graph.edges[edge_index])
 
     def _show_node_details(self, node: GraphNode):
-        self._detail_tree.clear()
-        self._detail_tree.setUpdatesEnabled(False)  # Performance improvement
+        """Display node details in the properties widget."""
+        self._properties_widget.show()
+        self._detail_tree.hide()
+        self._properties_widget.set_node(node)
 
-        QTreeWidgetItem(self._detail_tree, ["ID", node.id])
-        QTreeWidgetItem(self._detail_tree, ["Type", node.type])
-        QTreeWidgetItem(self._detail_tree, ["Label", node.label or "<none>"])
+    def _on_node_properties_changed(self, node: GraphNode):
+        """Handle changes from the properties widget."""
+        if self._current_graph and node:
+            # Update the node in the graph
+            for i, graph_node in enumerate(self._current_graph.nodes):
+                if graph_node.id == node.id:
+                    self._current_graph.nodes[i] = node
+                    break
 
-        assets_parent = QTreeWidgetItem(self._detail_tree, ["Asset Refs", f"({len(node.asset_refs)})"])
-        for ref in node.asset_refs:
-            QTreeWidgetItem(assets_parent, [ref])
-        assets_parent.setExpanded(True)
+            # Update the visual representation if needed
+            if node.id in self._node_items:
+                node_item = self._node_items[node.id]
+                # Ensure GUI updates happen on the main thread
+                QMetaObject.invokeMethod(node_item, "update_display", Qt.ConnectionType.QueuedConnection)
 
-        metadata_parent = QTreeWidgetItem(self._detail_tree, ["Metadata", ""])
-        if node.metadata:
-            for key, value in sorted(node.metadata.items()):
-                QTreeWidgetItem(metadata_parent, [key, str(value)])
-        else:
-            QTreeWidgetItem(metadata_parent, ["<none>", ""])
-
-        missing_keys = [key for key in REQUIRED_METADATA_KEYS if key not in node.metadata]
-        if missing_keys:
-            QTreeWidgetItem(metadata_parent, ["Missing required", ", ".join(missing_keys)])
-        metadata_parent.setExpanded(True)
-
-        self._detail_tree.setUpdatesEnabled(True)
-        self._detail_tree.resizeColumnToContents(0)
+            # Mark graph as dirty
+            self._mark_dirty(True)
 
     def _show_edge_details(self, edge: GraphEdge):
+        """Display edge details in the tree widget."""
+        self._properties_widget.hide()
+        self._detail_tree.show()
         self._detail_tree.clear()
         QTreeWidgetItem(self._detail_tree, ["Source", edge.source])
         QTreeWidgetItem(self._detail_tree, ["Target", edge.target])
         QTreeWidgetItem(self._detail_tree, ["Relation", edge.relation_type])
         self._detail_tree.resizeColumnToContents(0)
+
+    def _edit_edge_by_index(self, edge_index: int):
+        """Edit an edge using the existing edge management dialog."""
+        if not self._ensure_graph_loaded() or edge_index >= len(self._current_graph.edges):
+            return
+
+        dialog = EdgeManageDialog(self, self._current_graph.edges, edge_index)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            # The dialog modifies the edges directly
+            self._render_graph(self._current_graph)
+            self._select_edge_in_scene(edge_index)
+            self._mark_dirty(True)
+
+    def _delete_edge_by_index(self, edge_index: int):
+        """Delete a specific edge by index."""
+        if not self._ensure_graph_loaded() or edge_index >= len(self._current_graph.edges):
+            return
+
+        edge = self._current_graph.edges[edge_index]
+        reply = QMessageBox.question(
+            self, "Delete Edge",
+            f"Delete edge '{edge.source} → {edge.target}' ({edge.relation_type})?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+
+        if reply == QMessageBox.StandardButton.Yes:
+            self._current_graph.edges.pop(edge_index)
+            self._render_graph(self._current_graph)
+            self._mark_dirty(True)
+
+    def _apply_modern_theme(self):
+        """Apply modern theme styling to all UI components"""
+        if not self.theme_manager:
+            return
+
+        # Apply modern button styling
+        for btn_name in ['create_graph_button', 'save_graph_button', 'load_graph_button',
+                        'create_node_button', 'create_edge_button']:
+            if hasattr(self, btn_name):
+                btn = getattr(self, btn_name)
+                apply_modern_style(btn, self.theme_manager, "button_secondary")
+
+        # Apply modern list styling to graph list and tree widgets
+        for widget_name in ['graph_list', 'node_tree']:
+            if hasattr(self, widget_name):
+                widget = getattr(self, widget_name)
+                apply_modern_style(widget, self.theme_manager, "modern_list")
 

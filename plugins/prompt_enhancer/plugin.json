@@ -1,0 +1,17 @@
+{
+  "uuid": "7f8e9d5c-1a2b-4c3d-8e7f-9a0b1c2d3e4f",
+  "name": "Prompt Enhancer",
+  "type": "plugin",
+  "version": "1.0.0",
+  "tags": [
+    "ai",
+    "generation",
+    "enhancement"
+  ],
+  "entry_point": "plugins.prompt_enhancer.plugin:register_plugin",
+  "dependencies": [
+    "Core Services",
+    "Asset Library",
+    "Pixverse Generation"
+  ]
+}

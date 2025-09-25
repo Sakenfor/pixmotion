@@ -1,7 +1,7 @@
 # story_studio_project/plugins/assets/repository.py
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy import func
-from ..models import Asset
+from plugins.core.models import Asset
 
 
 class AssetRepository:

@@ -1,6 +1,8 @@
 """UI components exported by the assets plugin."""
 
-from .browser import AssetBrowserPanel, CreatePackageDialog
+from .browser import AssetBrowserPanel
+from .dialogs import CreatePackageDialog
+from .package_editor_widget import PackageEditorWidget # ADDED
 from .views import AssetDelegate, AssetModel, ImageViewer
 from .widgets import AssetBrowserTitleBar, AssetHoverManager, PreviewPopup, StarRatingFilter
 from .windows import MediaPreviewWindow, PromptedVideoWidget
@@ -14,7 +16,9 @@ __all__ = [
     "CreatePackageDialog",
     "ImageViewer",
     "MediaPreviewWindow",
+    "PackageEditorWidget", # ADDED
     "PreviewPopup",
     "PromptedVideoWidget",
     "StarRatingFilter",
 ]
+

@@ -212,7 +212,9 @@ class PixverseService:
 
     def _get_headers(self):
         settings = self._get_required_service("settings_service")
-        api_key = settings.get("pixverse_api_key", "")
+        api_key = settings.get_pixverse_api_key()
+        if not api_key or api_key.startswith("${"):
+            raise ValueError("Pixverse API key not found. Please set PIXVERSE_API_KEY environment variable.")
         return {"API-KEY": api_key, "Ai-trace-id": str(uuid.uuid4())}
 
     def _get_output_path(self, video_id, title=None):

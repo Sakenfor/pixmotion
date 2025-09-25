@@ -1,10 +1,26 @@
-# D:/My Drive/code/pixmotion/plugins/core/commands.py
+#pixmotion/plugins/core/commands.py
+from __future__ import annotations
 import os
 import uuid
 from PyQt6.QtWidgets import QApplication
-from PyQt6.QtGui import QImage
 from interfaces import ICommand
 from .models import Asset
+
+class SetUserDataRootCommand(ICommand):
+    """
+    Command to update the global user data root directory.
+    This is a "dangerous" operation as it changes where many services look for files.
+    The application should likely be restarted after this is changed.
+    """
+
+    def __init__(self, framework):
+        self.settings_service = framework.get_service("settings_service")
+        self.log = framework.get_service("log_manager")
+
+    def execute(self, new_path: str):
+        if self.settings_service and new_path:
+            self.log.info(f"Setting user data root to: {new_path}")
+            self.settings_service.set("user_data_root", new_path)
 
 
 class ReloadPluginsCommand(ICommand):

@@ -1,9 +1,9 @@
-﻿# story_studio_project/plugins/assets/plugin.py
+﻿#pixmotion/plugins/assets/plugin.py
 from interfaces import IPlugin
 from typing import Any
 
 from .commands import ScanFolderCommand, RescanEmotionPackagesCommand
-from .models import (
+from plugins.core.models import (
     Asset,
     AssetType,
     EmotionClip,
@@ -87,5 +87,3 @@ def register_plugin(service_registry: Any) -> None:
     if framework is None:
         raise RuntimeError("Framework service not registered in ServiceRegistry.")
     Plugin().register(framework)
-
-

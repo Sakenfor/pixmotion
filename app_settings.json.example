@@ -1,0 +1,46 @@
+{
+    "user_data_root": "data",
+    "output_directory": "./output",
+    "database_filename": "pixmotion.db",
+    "library_folders": [
+        "./sample_images",
+        "./assets"
+    ],
+    "window_geometry": "",
+    "window_state": "",
+    "panel_states": {
+        "asset_browser": {},
+        "graph_explorer": {
+            "selected_graph": ""
+        },
+        "generator_panel": {
+            "title": "",
+            "prompt": "A beautiful landscape with mountains and a lake at sunset",
+            "input_asset1_id": null,
+            "input_asset2_id": null,
+            "model": "v5",
+            "quality": "360p",
+            "duration": 5,
+            "camera_movement": "None",
+            "style": "None",
+            "motion_mode": "normal",
+            "seed": null,
+            "negative_prompt": "low quality, blurry, distorted"
+        }
+    },
+    "log_level": "INFO",
+    "emotion_analyzer": {
+        "face_cascade_path": "",
+        "emotion_model_path": "ai_models/motion-ferplus-8.onnx",
+        "emotion_labels": [
+            "neutral",
+            "happy",
+            "sad",
+            "angry",
+            "surprised"
+        ],
+        "emotion_input_size": 224,
+        "max_frames": 360,
+        "face_stride": 3
+    }
+}
